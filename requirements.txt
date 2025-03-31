@@ -1,0 +1,13 @@
+fastapi==0.95.1
+uvicorn==0.23.1
+sqlalchemy==2.0.39
+passlib[bcrypt]==1.7.4
+pydantic==1.10.21
+python-dotenv==0.21.0
+mercadopago==2.0.6
+requests==2.13.0
+urllib3==1.26.20
+PyJWT==1.7.1
+yagmail==0.15.293
+python-multipart==0.0.5
+fpdf==1.7.2

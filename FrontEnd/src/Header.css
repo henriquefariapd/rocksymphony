@@ -1,0 +1,30 @@
+/* Header.css */
+
+.header {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  
+  .header h2 {
+    margin: 0;
+    color: white;
+  }
+  
+  .logout-button, .login-link {
+    color: white;
+    background-color: #007BFF;
+    padding: 10px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .logout-button:hover, .login-link:hover {
+    background-color: #007BFF;
+  }
+  

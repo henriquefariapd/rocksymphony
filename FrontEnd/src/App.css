@@ -1,0 +1,380 @@
+#root {
+  width: -webkit-fill-available;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+.outer-container{
+  background-color: white;
+  color: black;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.list-spaces {
+  display: flex;
+  color: #007BFF;
+  margin-bottom: 20px;
+  justify-content: space-between;
+}
+.organize-lu {
+  max-width: 400px;
+  margin: 20px auto;
+  padding: 0;
+}
+
+.align-self-center {
+  align-self: center;
+}
+
+
+/* Estilos para centralizar a página */
+.App {
+  display: flex;
+  justify-content: center;  /* Alinha o conteúdo horizontalmente */
+  align-items: center;      /* Alinha o conteúdo verticalmente */
+  height: 100vh;            /* Faz a altura ocupar 100% da tela */
+  margin: 0;                /* Remove margens padrões */
+  background-color: #f4f4f9; /* Cor de fundo opcional */
+}
+
+/* Estilos do calendário */
+.react-calendar {
+  margin: 25px auto;
+  max-width: 600px; /* Define a largura máxima do calendário */
+  width: 100%;      /* O calendário ocupa 100% da largura disponível até o limite */
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Adiciona sombra para um visual mais agradável */
+}
+
+/* Estilos para os dias do calendário */
+.react-calendar__tile {
+  border-radius: 0;
+  padding: 10px;
+  min-height: 60px;
+  text-align: center;
+  color: black;
+  font-size: 16px;
+  background-color: white;
+  transition: background-color 0.3s ease;
+}
+
+.react-calendar__tile--active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.react-calendar__tile--now {
+  background-color: #007BFF;
+  border-radius: 10%;
+}
+
+.react-calendar__tile.custom-tile {
+  border: 2px solid #ccc;
+}
+
+.react-calendar__navigation button {
+  background-color: #007BFF;
+  color: white;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 14px;
+  margin: 0 10px;
+}
+/* Estilos para o Header */
+.react-calendar__navigation {
+  height: auto;
+  margin-bottom: 0;
+  background-color: #007BFF; /* Cor de fundo do cabeçalho */
+  color: black;              /* Cor do texto */
+  border-radius: 5px 5px 0 0; /* Arredondar os cantos superiores */
+  padding: 10px;             /* Espaçamento no cabeçalho */
+}
+.react-calendar__navigation__arrow:hover {
+  color: black;
+}
+.react-calendar__navigation__label:hover {
+  color: black;      
+}
+
+.react-calendar__month-view__weekdays {
+  font-weight: bold;           /* Deixa o nome dos dias em negrito */
+  font-size: 16px;             /* Altera o tamanho da fonte */
+  color: black;              /* Cor do texto */
+  text-transform: uppercase;   /* Coloca os dias em letras maiúsculas */
+  padding: 5px;                /* Adiciona um pouco de padding para separar */
+}
+
+
+/* Torna os números dos finais de semana pretos */
+.react-calendar__month-view__days__day--weekend {
+  color: black !important;
+}
+
+.cadastro {
+  margin: 10px;
+}
+
+.cadastro-input {
+  margin-left: 10px;
+}
+.space-button {
+  margin-right: 30px;
+}
+
+
+
+/* Ícones dentro dos slots */
+.icons-container {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+/* Estilização dos ícones */
+/* .calendar-icon {
+  font-size: 18px;
+  transition: transform 0.2s ease-in-out;
+} */
+.calendar-icon {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 16px; /* Ajuste o tamanho conforme necessário */
+  color: red; /* Altere conforme sua preferência */
+}
+.text-container {
+  top: -28px;
+  left: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Para telas menores, aumentamos o tamanho dos ícones */
+@media (max-width: 768px) {
+  .calendar-icon {
+    font-size: 28px; /* Aumenta o tamanho dos ícones no celular */
+  }
+  .icons-container {
+    display: flex;
+    justify-content: center;
+    gap: 0px;
+    margin-top: 0px;
+  }
+  .react-calendar__tile {
+    padding: 4px;
+    text-align: center;
+    color: black;
+    font-size: 16px;
+    background-color: white;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+  }
+  #root {
+    margin: 0 auto;
+    padding: .5rem;
+    text-align: center;
+  }
+  body {
+    background-color: #fff;
+  }
+}
+
+/* Ícones verdes para espaços disponíveis */
+.available {
+  color: green;
+}
+
+/* Ícones vermelhos para espaços reservados */
+.reserved {
+  color: red;
+}
+
+/* Efeito hover para destacar */
+.react-calendar__tile:hover {
+  background-color: #ddd !important;
+  transition: background-color 0.3s;
+}
+
+.calendar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  background-color: #f7f7f7;
+}
+
+/* Ícones no calendário */
+
+/* Ícones coloridos */
+.available {
+  color: green;
+}
+.reserved {
+  color: red;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  color: black;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 300px;
+}
+.close-button {
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  background: red;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.close-button:hover {
+  background: rgb(161, 47, 47);
+}
+.rent-button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  border: none;
+  background: green;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.rent-button:hover {
+  background: rgb(2, 72, 2);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.header-buttons a{
+  color: white;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.spaces-action-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.action-space {
+  margin-left: 10px;
+}
+
+.react-calendar__navigation__label__labelText {
+  font-size: 18px;
+}
+
+.reserv-color {
+  color: #007BFF;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.justify-evenly {
+  justify-content: space-evenly;
+}
+
+.reserv-table {
+  width: 90%;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.reserv-table th, .reserv-table td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #ddd;
+  color: #007BFF;
+}
+
+.reserv-table th {
+  background-color: #f2f2f2;
+  color: #007BFF;
+}
+
+button:disabled {
+  background-color: #e0e0e0;
+  cursor: not-allowed;
+}
+
+.btn-edit {
+  margin-right: 6px;
+}
+
+.m-bottom-20 {
+  margin-bottom: 20px;
+}
+
+.m-top-20 {
+  margin-top: 20px;
+}
+
+.configuracoes-container {
+  margin: 10%;
+}
