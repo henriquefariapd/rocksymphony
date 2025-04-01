@@ -125,14 +125,14 @@ const Reservas = ({ apiUrl, isAdmin }) => {
   }, [apiUrl, isAdmin, navigate]); // Adiciona isAdmin na dependência para reavaliar a lógica
 
   if (loading) {
-    return <p>Carregando reservas...</p>;
+    return <p>Carregando pedidos...</p>;
   }
 
   return (
     <div>
-      <h2>Reservas</h2>
+      <h2>Pedidos</h2>
       {reservations.length === 0 ? (
-        <p className="reserv-color">Nenhuma reserva encontrada.</p>
+        <p className="reserv-color">Nenhum pedido encontrado.</p>
       ) : (
         <table className="reserv-table">
           <thead>

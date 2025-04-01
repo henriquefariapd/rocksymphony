@@ -25,8 +25,8 @@ import mercadopago
 import yagmail
 from fastapi.security import OAuth2PasswordBearer
 
-#from .models import NamespaceConfig, Schedule, SessionLocal, Space, User
-from models import NamespaceConfig, Schedule, SessionLocal, Space, User
+#from .models import NamespaceConfig, Order, SessionLocal, Product, User
+from models import NamespaceConfig, Order, SessionLocal, Product, User
 #from .utils import decode_token
 from utils import decode_token
 #from .config import SECRET_KEY
@@ -95,7 +95,6 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db_session)
             "token_type": "bearer",
             "username": user.username,
             "is_admin": user.is_admin,
-            "namespace": user.namespace_id,
             "user_id": user.id,
         }
     
@@ -136,17 +135,8 @@ def health_db():
         # Se houver erro de conexão com o banco de dados
         return {"status": "error", "message": "Database connection failed"}, 500
 
-# Endpoint de login
-@app.post("/login")
-async def login(credentials: LoginRequest, db: Session = Depends(get_db_session)):
-    user = authenticate_user(credentials, db)
-    return {
-        "message": "Login bem-sucedido",
-        "username": user.username,
-        "is_admin": user.is_admin,
-        "namespace": user.namespace,
-        "user_id": user.id,
-    }
+
+
 
 class UserCreate(BaseModel):
     username: str
@@ -189,7 +179,7 @@ def get_schedules(user_id: str, db: Session):
         namespace_id = db.query(User).filter(User.id == int(user_id)).first().namespace_id
         print(namespace_id)
         # Filtra os schedules para o usuário específico
-        schedules = db.query(Schedule).join(Space).filter(Schedule.active == True, Space.namespace_id == namespace_id).all()
+        schedules = db.query(Order).join(Product).filter(Order.active == True, Product.namespace_id == namespace_id).all()
 
         if not schedules:
             print(f"Nenhum schedule encontrado para o namespace e user_id: {user_id}")
@@ -244,8 +234,7 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
 @app.get("/api/spaces")
 async def get_available_spaces(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
     # Consulta para buscar os espaços por namespace
-    namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-    spaces = db.query(Space).filter(Space.namespace_id == namespace_id).all()
+    spaces = db.query(Product).all()
     if not spaces:
         raise HTTPException(status_code=404, detail="Espaços não encontrados para o namespace")
     return spaces
@@ -255,14 +244,14 @@ async def get_available_configs(current_user: User = Depends(get_logged_user), d
     # Obter a configuração do usuário
     config = db.query(User).filter(User.id == current_user.id).first().namespace_config
     namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-    spaces = db.query(Space).filter(Space.namespace_id == namespace_id).all()
+    spaces = db.query(Product).filter(Product.namespace_id == namespace_id).all()
     days_until_next_schedule_is_available = 0
     spaces_locked_untill = {}
 
 
     if config.consider_last_schedule:
         # Pegar o agendamento mais recente do usuário
-        latest_schedule = db.query(Schedule).filter(Schedule.user_id == current_user.id, Schedule.active == True).order_by(Schedule.schedule_date.desc()).first()
+        latest_schedule = db.query(Order).filter(Order.user_id == current_user.id, Order.active == True).order_by(Order.schedule_date.desc()).first()
         
         # Calcular a quantidade de dias até o próximo agendamento estar disponível
         if latest_schedule:
@@ -276,7 +265,7 @@ async def get_available_configs(current_user: User = Depends(get_logged_user), d
     
         today = date.today()
         for space in spaces:
-            user_last_schedule_for_space = db.query(Schedule).filter(Schedule.user_id == current_user.id, Schedule.space_id == space.id).order_by(Schedule.schedule_date.desc()).first()
+            user_last_schedule_for_space = db.query(Order).filter(Order.user_id == current_user.id, Order.space_id == space.id).order_by(Order.schedule_date.desc()).first()
             if user_last_schedule_for_space:
                 space_locked_untill = user_last_schedule_for_space.schedule_date + timedelta(days=space.min_days)
                 spaces_locked_untill[space.name] = space_locked_untill
@@ -370,7 +359,6 @@ async def get_current_user(
     return {
         "username": user.username,
         "is_admin": user.is_admin,
-        "namespace": user.namespace_id
     }
 
 
@@ -382,7 +370,7 @@ class SpaceCreate(BaseModel):
 # Função para criar um novo espaço
 def create_space(db, name: str, valor: float, namespace_id: str, min_days: int):
     valor = int(valor)
-    new_space = Space(name=name, valor=valor, namespace_id=namespace_id, min_days=min_days)
+    new_space = Product(name=name, valor=valor, namespace_id=namespace_id, min_days=min_days)
     db.add(new_space)
     db.commit()
     db.refresh(new_space)
@@ -409,13 +397,13 @@ class ScheduleCreate(BaseModel):
 
 def create_schedule(db: Session, config,  spaceName: str, schedule_date: date, schedule_namespace_id: int, user_id):
     # Busca o espaço no banco
-    space = db.query(Space).filter(Space.name == spaceName, Space.namespace_id == schedule_namespace_id).first()
+    space = db.query(Product).filter(Product.name == spaceName, Product.namespace_id == schedule_namespace_id).first()
     
     if not space:
-        raise Exception(f"Space '{spaceName}' no namespace_id '{schedule_namespace_id}' não encontrado.")
+        raise Exception(f"Product '{spaceName}' no namespace_id '{schedule_namespace_id}' não encontrado.")
 
-    # Cria o Schedule e salva no banco (ainda sem o pagamento)
-    new_schedule = Schedule(space_id=space.id, schedule_date=schedule_date, user_id=user_id)
+    # Cria o Order e salva no banco (ainda sem o pagamento)
+    new_schedule = Order(space_id=space.id, schedule_date=schedule_date, user_id=user_id)
     db.add(new_schedule)
     db.commit()
     db.refresh(new_schedule)
@@ -452,7 +440,7 @@ def create_schedule(db: Session, config,  spaceName: str, schedule_date: date, s
 
         payment_link = result["response"]["init_point"]  # Link do MercadoPago
 
-        # 🔹 Atualiza o Schedule com o link de pagamento
+        # 🔹 Atualiza o Order com o link de pagamento
         new_schedule.payment_link = payment_link
         db.commit()
 
@@ -594,7 +582,7 @@ class SpaceUpdate(BaseModel):
 
 # Função para editar um espaço
 def update_space(db: Session, space_id: int, name: str, valor: float, namespace_id: str, min_days: str):
-    space = db.query(Space).filter(Space.id == space_id).first()
+    space = db.query(Product).filter(Product.id == space_id).first()
     if not space:
         raise HTTPException(status_code=404, detail="Espaço não encontrado")
 
@@ -608,7 +596,7 @@ def update_space(db: Session, space_id: int, name: str, valor: float, namespace_
 
 # Função para excluir um espaço
 def delete_space(db: Session, space_id: int):
-    space = db.query(Space).filter(Space.id == space_id).first()
+    space = db.query(Product).filter(Product.id == space_id).first()
     if not space:
         raise HTTPException(status_code=404, detail="Espaço não encontrado")
 
@@ -644,7 +632,7 @@ async def delete_space_endpoint(space_id: int, db: Session = Depends(get_db_sess
         
 @app.get("/api/my_schedules")
 async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
-    schedules = db.query(Schedule).filter(Schedule.user_id == current_user.id).all()
+    schedules = db.query(Order).filter(Order.user_id == current_user.id).all()
 
     if not schedules:
         raise HTTPException(
@@ -672,7 +660,7 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
 @app.get("/api/all_schedules")
 async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
     namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-    schedules = db.query(Schedule).join(Space).filter(Space.namespace_id == namespace_id).all()
+    schedules = db.query(Order).join(Product).filter(Product.namespace_id == namespace_id).all()
 
     if not schedules:
         raise HTTPException(
@@ -714,7 +702,7 @@ class CancelScheduleRequest(BaseModel):
 async def cancel_schedule(reservation_id: int, request: CancelScheduleRequest, db: Session = Depends(get_db_session)):
     try:
         payload = json.loads(request.json())
-        schedule = db.query(Schedule).filter(Schedule.id == reservation_id).first()
+        schedule = db.query(Order).filter(Order.id == reservation_id).first()
         if payload.get('refund') == True:
             #estorno manual
             yag = yagmail.SMTP(user="henriquebarreira88@gmail.com", password="yrdh enwq dkdy tsnz")
@@ -779,7 +767,7 @@ async def payment_webhook(request: Request, db: Session = Depends(get_db_session
             raise HTTPException(status_code=400, detail="external_reference ausente nos detalhes do pagamento")
 
         # Busca a reserva no banco de dados
-        schedule = db.query(Schedule).filter(Schedule.id == reference_id).first()
+        schedule = db.query(Order).filter(Order.id == reference_id).first()
         if not schedule:
             raise HTTPException(status_code=404, detail="Reserva não encontrada")
 
@@ -873,7 +861,7 @@ async def download_receipt(request: Request, db: Session = Depends(get_db_sessio
     try:
         payload = await request.json()
         schedule_id = payload.get("schedule_id")
-        schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+        schedule = db.query(Order).filter(Order.id == schedule_id).first()
         receipt_path = generate_receipt(schedule)
 
         return FileResponse(receipt_path, media_type='application/pdf', filename="recibo_de_pagamento.pdf")
@@ -889,7 +877,7 @@ async def baixa_manual(request: Request, db: Session = Depends(get_db_session)):
     try:
         payload = await request.json()
         schedule_id = payload.get("schedule_id")
-        schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
+        schedule = db.query(Order).filter(Order.id == schedule_id).first()
         schedule.pending = False
         db.commit()
         db.refresh(schedule)

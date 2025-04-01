@@ -30,7 +30,7 @@ body {
   
   h2 {
     margin-bottom: 30px;
-    color: #007BFF;
+    color: #580C1F;
     font-size: 24px;
     font-weight: 600;
   }
@@ -61,11 +61,11 @@ body {
   }
   
   input:focus {
-    border-color: #007BFF;
+    border-color: #580C1F;
   }
   
   button {
-    background-color: #007BFF;
+    background-color: #580C1F;
     color: white;
     padding: 12px;
     font-size: 16px;
@@ -76,7 +76,7 @@ body {
   }
   
   button:hover {
-    background-color: #007BFF;
+    background-color: #580C1F;
   }
   
   .error {

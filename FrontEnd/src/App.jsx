@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
-import CalendarPage from './Calendar';
+import Home from './Home';
 import axios from 'axios';
 import Header from './Header';
 import Espacos from './Espacos'; // Página para listar espaços
@@ -65,7 +65,7 @@ function App() {
     <Router>
       <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />
       <Routes>
-        <Route path="/" element={isLoggedIn ? <CalendarPage /> : <Navigate to="/login" />} />
+        <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         
         {/* Protegendo as rotas de espaços e reservas */}

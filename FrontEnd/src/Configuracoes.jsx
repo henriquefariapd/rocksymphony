@@ -141,9 +141,9 @@ function Configuracoes() {
         />
       </div>
       <div className='m-top-20'>
-        <Button className="btn-save" onClick={handleSave} variant="contained">
+        <button className="btn-save logout-button" onClick={handleSave} variant="contained">
           Salvar Configurações
-        </Button>
+        </button>
       </div>
       {showSuccess && (
         <div className="success-message reserv-color">
