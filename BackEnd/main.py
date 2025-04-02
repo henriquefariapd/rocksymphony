@@ -403,7 +403,7 @@ def create_order(db: Session, productId: str, user_id):
         raise Exception(f"Product '{productId}' não encontrado.")
 
     # Cria o Order e salva no banco (ainda sem o pagamento)
-    new_order = Order(product_id=product.id, user_id=user_id)
+    new_order = Order(product_id=product.id, user_id=user_id, order_date=datetime.now())
     db.add(new_order)
     db.commit()
     db.refresh(new_order)
