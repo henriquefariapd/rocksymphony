@@ -18,7 +18,7 @@ def create_data(db: Session):
     def hash_password(password: str):
         return pwd_context.hash(password)
 
-    hashed_password = hash_password("password123")
+    hashed_password = hash_password("123")
     namespace1 = NamespaceConfig(name="Chacara Das Rosas", has_pagseguro=True)
     
     db.add(namespace1)
@@ -41,11 +41,11 @@ def create_data(db: Session):
 
 
 
-    create_user(db, username="usuario_admin", email="leonahoum@gmail.com", hashed_password=hashed_password, is_admin=True)
-    create_user(db, username="usuario_teste", email="leonadois@gmail.com", hashed_password=hashed_password, is_admin=False)
+    create_user(db, username="adm", email="leonahoum@gmail.com", hashed_password=hashed_password, is_admin=True)
+    create_user(db, username="user", email="leonadois@gmail.com", hashed_password=hashed_password, is_admin=False)
 
-    create_user(db, username="usuario_admin2", email="leonatres@gmail.com", hashed_password=hashed_password, is_admin=True)
-    create_user(db, username="usuario_teste2", email="leonaquatro@gmail.com", hashed_password=hashed_password, is_admin=False)
+    create_user(db, username="adm2", email="leonatres@gmail.com", hashed_password=hashed_password, is_admin=True)
+    create_user(db, username="user2", email="leonaquatro@gmail.com", hashed_password=hashed_password, is_admin=False)
 
     
     print(f"Espaço 'Churrasqueira' criado com sucesso no namespace 'Chacara das Rosas'.")
