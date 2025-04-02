@@ -19,7 +19,7 @@ function CadastroEspaco() {
     //   },
     //   body: JSON.stringify(novoEspaco),
     // });
-    await fetch('https://ta-reservado-8e74d7e79187.herokuapp.com/api/spaces', {
+    await fetch('https://rock-symphony-91f7e39d835d.herokuapp.com', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

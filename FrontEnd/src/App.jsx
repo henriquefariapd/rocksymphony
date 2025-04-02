@@ -19,7 +19,7 @@ function App() {
   const apiUrl =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
-      : "https://ta-reservado-8e74d7e79187.herokuapp.com";
+      : "https://rock-symphony-91f7e39d835d.herokuapp.com";
 
   // Função para buscar as informações do usuário e verificar se é admin
   const fetchMe = async () => {
