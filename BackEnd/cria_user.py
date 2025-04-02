@@ -4,8 +4,8 @@ from models import NamespaceConfig, User, Product, SessionLocal
 from passlib.context import CryptContext
 
 # Função para criar um usuário (caso queira adicionar ao seu banco de dados)
-def create_user(db: Session, username: str, hashed_password: str, is_admin: bool):
-    user = User(username=username, hashed_password=hashed_password, is_admin=is_admin)
+def create_user(db: Session, username: str, email: str,  hashed_password: str, is_admin: bool):
+    user = User(username=username, email=email, hashed_password=hashed_password, is_admin=is_admin)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -19,7 +19,6 @@ def create_data(db: Session):
         return pwd_context.hash(password)
 
     hashed_password = hash_password("password123")
-
     namespace1 = NamespaceConfig(name="Chacara Das Rosas", has_pagseguro=True)
     
     db.add(namespace1)
@@ -29,8 +28,8 @@ def create_data(db: Session):
 
 
 
-    new_product = Product(name="Violeta de Outono", valor=250, min_days=30)
-    new_product1 = Product(name="Pixinguinha", valor=50, min_days=30)
+    new_product = Product(name="Violeta de Outono", valor=250, min_days=30, remaining=30)
+    new_product1 = Product(name="Pixinguinha", valor=50, min_days=30, remaining=30)
     
     db.add(new_product)
     db.commit()
@@ -42,11 +41,11 @@ def create_data(db: Session):
 
 
 
-    create_user(db, username="usuario_admin", hashed_password=hashed_password, is_admin=True)
-    create_user(db, username="usuario_teste", hashed_password=hashed_password, is_admin=False)
+    create_user(db, username="usuario_admin", email="leonahoum@gmail.com", hashed_password=hashed_password, is_admin=True)
+    create_user(db, username="usuario_teste", email="leonadois@gmail.com", hashed_password=hashed_password, is_admin=False)
 
-    create_user(db, username="usuario_admin2", hashed_password=hashed_password, is_admin=True)
-    create_user(db, username="usuario_teste2", hashed_password=hashed_password, is_admin=False)
+    create_user(db, username="usuario_admin2", email="leonatres@gmail.com", hashed_password=hashed_password, is_admin=True)
+    create_user(db, username="usuario_teste2", email="leonaquatro@gmail.com", hashed_password=hashed_password, is_admin=False)
 
     
     print(f"Espaço 'Churrasqueira' criado com sucesso no namespace 'Chacara das Rosas'.")
