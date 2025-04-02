@@ -25,12 +25,12 @@ import mercadopago
 import yagmail
 from fastapi.security import OAuth2PasswordBearer
 
-#from .models import NamespaceConfig, Order, SessionLocal, Product, User
-from models import NamespaceConfig, Order, SessionLocal, Product, User
-#from .utils import decode_token
-from utils import decode_token
-#from .config import SECRET_KEY
-from config import SECRET_KEY
+from .models import NamespaceConfig, Order, SessionLocal, Product, User
+#from models import NamespaceConfig, Order, SessionLocal, Product, User
+from .utils import decode_token
+#from utils import decode_token
+from .config import SECRET_KEY
+#from config import SECRET_KEY
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -40,10 +40,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Criação da instância do FastAPI
 app = FastAPI()
-mp = mercadopago.SDK("APP_USR-6734260513730647-032618-75ea0ecdc62468bc1a1e1571c5de5da5-2356066080")
+mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f416e2192-96235831")
 #mp = mercadopago.SDK("APP_USR-5748454171895956-033016-e92ea87b73deeaaa1ae7f156e1f28a67-66188553")
 
-# app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
+app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Permite todos os domínios. Você pode restringir isso para domínios específicos.
@@ -390,39 +390,39 @@ async def create_new_space(space: SpaceCreate, current_user: User = Depends(get_
     finally:
         db.close() 
 
-class ScheduleCreate(BaseModel):
-    spaceName: str
-    date: date
+class OrderCreate(BaseModel):
+    productName: str
 
 
-def create_schedule(db: Session, config,  spaceName: str, schedule_date: date, schedule_namespace_id: int, user_id):
+def create_order(db: Session, productId: str, user_id):
     # Busca o espaço no banco
-    space = db.query(Product).filter(Product.name == spaceName, Product.namespace_id == schedule_namespace_id).first()
+    product = db.query(Product).filter(Product.id == productId).first()
+    config = db.query(NamespaceConfig).first()
     
-    if not space:
-        raise Exception(f"Product '{spaceName}' no namespace_id '{schedule_namespace_id}' não encontrado.")
+    if not product:
+        raise Exception(f"Product '{productId}' não encontrado.")
 
     # Cria o Order e salva no banco (ainda sem o pagamento)
-    new_schedule = Order(space_id=space.id, schedule_date=schedule_date, user_id=user_id)
-    db.add(new_schedule)
+    new_order = Order(product_id=product.id, user_id=user_id)
+    db.add(new_order)
     db.commit()
-    db.refresh(new_schedule)
+    db.refresh(new_order)
 
     if config.has_pagseguro:
     # 🔹 Criando o pagamento no MercadoPago 🔹
         payment_data = {
             "items": [
                 {
-                    "title": f"Reserva do espaço {space.name}",
+                    "title": f"Compra do Produto {product.name}",
                     "quantity": 1,
                     "currency_id": "BRL",
-                    "unit_price": new_schedule.space.valor  # Ajuste o valor conforme necessário
+                    "unit_price": new_order.product.valor  # Ajuste o valor conforme necessário
                 }
             ],
             "payer": {
                 "email": "usuario@email.com"  # Troque pelo email real do usuário
             },
-            "external_reference": str(new_schedule.id),  # ID da reserva
+            "external_reference": str(new_order.id),  # ID da reserva
             "back_urls": {
                 "success": "http://localhost:5173/minhas-reservas",
                 "failure": "http://localhost:5173/minhas-reservas",
@@ -441,55 +441,18 @@ def create_schedule(db: Session, config,  spaceName: str, schedule_date: date, s
         payment_link = result["response"]["init_point"]  # Link do MercadoPago
 
         # 🔹 Atualiza o Order com o link de pagamento
-        new_schedule.payment_link = payment_link
+        new_order.payment_link = payment_link
         db.commit()
 
-    if config.has_pagarme:
-        pagarme_data = {
-            "api_key": PAGARME_API_KEY,
-            "amount": int(space.valor * 100),  # O Pagar.me usa valores em centavos
-            "payment_method": "boleto",  # Pode ser "credit_card" também
-            "customer": {
-                "external_id": str(user_id),
-                "name": "Nome do Cliente",
-                "email": "usuario@email.com",
-                "type": "individual",
-                "country": "br",
-                "documents": [
-                    {"type": "cpf", "number": "00000000000"}  # CPF do cliente
-                ]
-            },
-            "metadata": {
-                "schedule_id": new_schedule.id,
-                "space_name": space.name
-            }
-        }
-
-        pagarme_response = requests.post("https://api.pagar.me/1/transactions", json=pagarme_data)
-
-        if pagarme_response.status_code != 200:
-            db.rollback()
-            raise HTTPException(status_code=500, detail="Erro ao criar pagamento no Pagar.me.")
-
-        pagarme_result = pagarme_response.json()
-        if "boleto_url" in pagarme_result:  
-            new_schedule.payment_link = pagarme_result["boleto_url"]  # Link do boleto  
-        elif "checkout_url" in pagarme_result:  
-            new_schedule.payment_link = pagarme_result["checkout_url"]  # Link do checkout  
-
-        db.commit()
-        return new_schedule
-
-@app.post("/schedules")
-async def create_new_schedule(schedule: ScheduleCreate, current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
+    return new_order
+    
+@app.post("/orders")
+async def create_new_order(order: OrderCreate, current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
     try:
-        namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-        config = db.query(User).filter(User.id == current_user.id).first().namespace_config
-
-        new_schedule = create_schedule(db, config, schedule.spaceName, schedule.date, namespace_id, current_user.id)
+        new_order = create_order(db, order.productName, current_user.id)
         return {
-            "message": f"Reserva do espaço '{new_schedule.space_id}' criada com sucesso!",
-            "payment_link": new_schedule.payment_link
+            "message": f"Pedido criado com sucesso!",
+            "payment_link": new_order.payment_link
         }
     except Exception as e:
         db.rollback()
@@ -581,18 +544,17 @@ class SpaceUpdate(BaseModel):
     min_days: int
 
 # Função para editar um espaço
-def update_space(db: Session, space_id: int, name: str, valor: float, namespace_id: str, min_days: str):
-    space = db.query(Product).filter(Product.id == space_id).first()
-    if not space:
+def update_product(db: Session, space_id: int, name: str, valor: float, min_days: str):
+    product = db.query(Product).filter(Product.id == space_id).first()
+    if not product:
         raise HTTPException(status_code=404, detail="Espaço não encontrado")
 
-    space.name = name
-    space.valor = valor
-    space.namespace_id = namespace_id
-    space.min_days = min_days
+    product.name = name
+    product.valor = valor
+    product.min_days = min_days
     db.commit()
-    db.refresh(space)
-    return space
+    db.refresh(product)
+    return product
 
 # Função para excluir um espaço
 def delete_space(db: Session, space_id: int):
@@ -605,12 +567,11 @@ def delete_space(db: Session, space_id: int):
     return {"message": f"Espaço '{space.name}' excluído com sucesso!"}
 
 # Endpoint para editar um espaço
-@app.put("/spaces/{space_id}")
-async def edit_space(space_id: int, space: SpaceUpdate, current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
+@app.put("/spaces/{product_id}")
+async def edit_space(product_id: int, product: SpaceUpdate, current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
     try:
-        namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-        updated_space = update_space(db, space_id, space.name, space.valor, namespace_id, space.min_days)
-        return {"message": f"Espaço '{updated_space.name}' atualizado com sucesso!"}
+        updated_product = update_product(db, product_id, product.name, product.valor, product.min_days)
+        return {"message": f"Espaço '{updated_product.name}' atualizado com sucesso!"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Erro ao editar espaço: " + str(e))
@@ -632,9 +593,9 @@ async def delete_space_endpoint(space_id: int, db: Session = Depends(get_db_sess
         
 @app.get("/api/my_schedules")
 async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
-    schedules = db.query(Order).filter(Order.user_id == current_user.id).all()
+    orders = db.query(Order).filter(Order.user_id == current_user.id).all()
 
-    if not schedules:
+    if not orders:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Nenhuma reserva encontrada para este usuário"
@@ -642,16 +603,14 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
 
     result = [
         {
-            'id': schedule.id,
-            'schedule_date': schedule.schedule_date.isoformat(),
-            'space_id': schedule.space.id,
-            'space_name': schedule.space.name,
-            'namespace': schedule.space.namespace_id,
-            'payment_link': schedule.payment_link,
-            'pending': schedule.pending,
-            'cancelled': not schedule.active
+            'id': order.id,
+            'space_id': order.product.id,
+            'space_name': order.product.name,
+            'payment_link': order.payment_link,
+            'pending': order.pending,
+            'cancelled': not order.active
         }
-        for schedule in schedules
+        for order in orders
     ]
 
     return result

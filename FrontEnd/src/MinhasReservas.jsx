@@ -154,8 +154,7 @@ const MinhasReservas = ({ apiUrl }) => {
         <table className="reserv-table">
           <thead>
             <tr>
-              <th>Espaço</th>
-              <th>Data</th>
+              <th>Produto</th>
               <th>Status</th>
               <th>Pagamento</th>
               <th>Recibo</th>
@@ -166,9 +165,6 @@ const MinhasReservas = ({ apiUrl }) => {
             {reservations.map((reservation) => (
               <tr key={reservation.id}>
                 <td>{reservation.space_name}</td>
-                <td>  {new Date(reservation.schedule_date).toLocaleDateString('pt-BR', {
-                  timeZone: 'UTC', // Força o uso do fuso horário UTC para a data sem ajustes
-                })}</td>
                 <td>
                   {reservation.cancelled ? (
                     <span style={{ color: "black" }}>Cancelado</span>

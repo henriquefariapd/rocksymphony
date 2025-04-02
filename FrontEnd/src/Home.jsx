@@ -5,7 +5,7 @@ import { FaCartPlus } from "react-icons/fa";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 
 function Home() {
-  const [espacos, setEspacos] = useState([]);
+  const [produtos, setProdutos] = useState([]);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [valor, setValor] = useState('');
@@ -30,7 +30,7 @@ function Home() {
         },
       });
       const data = await response.json();
-      setEspacos(data);
+      setProdutos(data);
     } catch (error) {
       toast.error('Erro ao carregar os espaços');
       console.error('Erro ao buscar espaços:', error);
@@ -95,6 +95,48 @@ function Home() {
     }
   };
 
+  const handlePurchase = async (productName) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token || token == 'undefined') {
+        toast.error("Usuário não autenticado. Por favor, faça login.");
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          productName
+        }),
+      });
+  
+      const data = await response.json();
+      console.log("Resposta do backend:", data);
+  
+      if (!response.ok) {
+        throw new Error(data.detail || "Falha ao reservar o espaço");
+      }
+  
+      // setIsModalOpen(false);
+      fetchSchedulesAndSpaces();
+  
+      toast(`${spaceName} foi reservado com sucesso!`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (error) {
+      console.error("Erro ao reservar:", error);
+      toast.error("Erro ao reservar o espaço. Tente novamente.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  }; 
+
   const handleEdit = (espaco) => {
     setEditingEspaco(espaco);
     setNome(espaco.name);
@@ -123,7 +165,7 @@ function Home() {
     <div>
       <h2>Produtos Disponíveis</h2>
       
-      {espacos.length === 0 ? (
+      {produtos.length === 0 ? (
         <p>Não há espaços cadastrados no momento.</p>
       ) : (
         <table className="reserv-table m-bottom-20 m-0-auto">
@@ -136,16 +178,16 @@ function Home() {
             </tr>
           </thead>
           <tbody>
-            {espacos.map((espaco) => (
-              <tr key={espaco.id}>
-                <td>{espaco.name}</td>
-                <td>R$ {espaco.valor}</td>
-                <td>{espaco.min_days}</td>
+            {produtos.map((produto) => (
+              <tr key={produto.id}>
+                <td>{produto.name}</td>
+                <td>R$ {produto.valor}</td>
+                <td>{produto.min_days}</td>
                 <td>
-                  <button className="btn-edit" onClick={() => handleEdit(espaco)}>
+                  <button className="btn-edit" onClick={() => handleEdit(produto)}>
                     <FaCartPlus /> {/* Ícone de lápis */}
                   </button>
-                  <button className="btn-delete" onClick={() => handleDelete(espaco.id)}>
+                  <button className="btn-delete" onClick={() => handlePurchase(produto.id)}>
                     <BiPurchaseTagAlt /> {/* Ícone de lixeira */}
                     comprar
                   </button>

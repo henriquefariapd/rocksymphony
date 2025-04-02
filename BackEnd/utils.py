@@ -1,7 +1,7 @@
 import jwt
 from datetime import datetime, timezone
-#from .config import SECRET_KEY  # Defina uma chave secreta segura
-from config import SECRET_KEY  # Defina uma chave secreta segura
+from .config import SECRET_KEY  # Defina uma chave secreta segura
+#from config import SECRET_KEY  # Defina uma chave secreta segura
 
 def decode_token(token: str):
     try:

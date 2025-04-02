@@ -119,7 +119,7 @@ function Espacos() {
 
   return (
     <div>
-      <h2>Espaços Disponíveis</h2>
+      <h2>Produtos Disponíveis</h2>
       
       {espacos.length === 0 ? (
         <p>Não há espaços cadastrados no momento.</p>
@@ -127,15 +127,17 @@ function Espacos() {
         <table className="reserv-table m-bottom-20">
           <thead>
             <tr>
-              <th>Nome do Espaço</th>
-              <th>Valor do Aluguel</th>
-              <th>Intervalo Mínimo(em dias)</th>
+              <th>Artista</th>
+              <th>Item</th>
+              <th>Valor</th>
+              <th>Estoque</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {espacos.map((espaco) => (
               <tr key={espaco.id}>
+                <td>{espaco.name}</td>
                 <td>{espaco.name}</td>
                 <td>R$ {espaco.valor}</td>
                 <td>{espaco.min_days}</td>
