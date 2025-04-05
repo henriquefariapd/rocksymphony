@@ -147,7 +147,7 @@ function Espacos() {
                 <td>
                   {espaco.image_path ? (
                     <img
-                      src={`${apiUrl}${espaco.image_path}`}
+                      src={`${apiUrl}/${espaco.image_path}`}
                       alt={espaco.name}
                       style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
                     />
