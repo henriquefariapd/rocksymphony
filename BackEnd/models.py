@@ -53,10 +53,18 @@ class Order(Base):
     user = relationship("User", back_populates="orders")
 
 # Configuração do banco de dados SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+# Configuração do banco de dados
+raw_url = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+if raw_url.startswith("postgres://"):
+    raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = raw_url
 
 # Criação do engine e da sessão
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Criação das tabelas no banco de dados
