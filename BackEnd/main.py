@@ -370,10 +370,12 @@ class SpaceCreate(BaseModel):
     min_days: int
 
 # Função para criar um novo espaço
-def create_space(db, name: str, valor: float, remaining: int, image_path: str = None):
+def create_space(db, name: str, artist: str, description: str, valor: float, remaining: int, image_path: str = None):
     valor = int(valor)
     new_space = Product(
         name=name,
+        artist=artist,
+        description=description,
         valor=valor,
         remaining=remaining,
         image_path=image_path  # nova coluna no seu model (precisa existir)
@@ -387,6 +389,8 @@ def create_space(db, name: str, valor: float, remaining: int, image_path: str = 
 @app.post("/spaces")
 async def create_new_space(
     name: str = Form(...),
+    artist: str = Form(...),
+    description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
     image: UploadFile = File(None),
@@ -401,7 +405,7 @@ async def create_new_space(
                 buffer.write(await image.read())
             image_path = file_location
 
-        new_space = create_space(db, name, valor, remaining, image_path=image_path)
+        new_space = create_space(db, name, artist, description, valor, remaining, image_path=image_path)
         return {"message": f"Espaço '{new_space.name}' criado com sucesso!"}
     except Exception as e:
         db.rollback()
