@@ -4,38 +4,45 @@ import Login from './Login';
 import Home from './Home';
 import axios from 'axios';
 import Header from './Header';
-import Espacos from './Espacos'; // Página para listar espaços
-import MinhasReservas from './MinhasReservas'; // Página para cadastrar espaços
+import Espacos from './Espacos';
+import MinhasReservas from './MinhasReservas';
 import Reservas from './Reservas';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
+import { CiShoppingCart } from "react-icons/ci";
+import { IoIosCloseCircleOutline } from "react-icons/io";
+
+
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sidebarAberto, setSidebarAberto] = useState(false);
 
-  // Definir a URL base da API
+  const toggleSidebar = () => {
+    setSidebarAberto(!sidebarAberto);
+  };
+
   const apiUrl =
     window.location.hostname === "localhost"
       ? "http://localhost:8000"
       : "https://rock-symphony-91f7e39d835d.herokuapp.com";
 
-  // Função para buscar as informações do usuário e verificar se é admin
   const fetchMe = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      if ((!token || token == 'undefined')) return;  
+      if (!token || token === 'undefined') return;
       const response = await axios.post(
         `${apiUrl}/me`,
-        {}, // Agora não passamos username no corpo
+        {},
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Passamos o token no cabeçalho
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-  
+
       setIsAdmin(response.data.is_admin);
     } catch (err) {
       localStorage.removeItem("access_token");
@@ -43,16 +50,14 @@ function App() {
     }
   };
 
-  // Verificar o token no localStorage ao iniciar a aplicação
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (token && token != 'undefined') {
+    if (token && token !== 'undefined') {
       setIsLoggedIn(true);
-      fetchMe(); // Após o login, chama fetchMe para definir isAdmin
+      fetchMe();
     }
   }, []);
 
-  // Função para fazer logout
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('username');
@@ -64,26 +69,35 @@ function App() {
   return (
     <Router>
       <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />
+      
+      {/* <button
+        onClick={toggleSidebar}
+        className={`abrir-sidebar ${sidebarAberto ? 'sidebar-aberta' : ''}`}
+      >
+        <CiShoppingCart />
+      </button> */}
+
+      <div className={`sidebar ${sidebarAberto ? 'aberto' : ''}`}>
+        <button onClick={toggleSidebar} className="fechar-sidebar"><IoIosCloseCircleOutline/></button>
+        <h2 className='sidebar-title'>Seu Carrinho</h2>
+        <p>Seu carrinho está vazio.</p>
+        <button
+          onClick={toggleSidebar}
+          className={`abrir-sidebar ${sidebarAberto ? 'sidebar-aberta' : ''}`}
+        >
+          <CiShoppingCart />
+        </button>
+      </div>
+
       <Routes>
         <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
-        
-        {/* Protegendo as rotas de espaços e reservas */}
-        {isLoggedIn ? (
-          <>
-            <Route path="/espacos" element={<Espacos />} />
-            <Route path="/minhas-reservas" element={<MinhasReservas />} />
-            <Route path="/reservas" element={<Reservas isAdmin={isAdmin} />} />
-            <Route path="/configuracoes" element={<Configuracoes/>} />
-            <Route path="/importar-usuarios" element={<ImportarUsuarios/>} />
-            <Route path="/usuarios" element={<ListaUsuarios/>} />
-          </>
-        ) : (
-          <>
-            <Route path="/login" element={<Navigate to="/login" />} />
-            <Route path="/cadastro-espaco" element={<Navigate to="/login" />} />
-          </>
-        )}
+        <Route path="/espacos" element={<Espacos />} />
+        <Route path="/minhas-reservas" element={<MinhasReservas />} />
+        <Route path="/reservas" element={<Reservas />} />
+        <Route path="/configuracoes" element={<Configuracoes />} />
+        <Route path="/importar-usuarios" element={<ImportarUsuarios />} />
+        <Route path="/usuarios" element={<ListaUsuarios />} />
       </Routes>
     </Router>
   );

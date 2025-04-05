@@ -163,44 +163,39 @@ function Home() {
 
   return (
     <div>
-      <h2>Produtos Disponíveis</h2>
-      
+      <h2> Catálogo </h2>
+  
       {produtos.length === 0 ? (
-        <p>Não há espaços cadastrados no momento.</p>
+        <p>Não há CDs cadastrados no momento.</p>
       ) : (
-        <table className="reserv-table m-bottom-20 m-0-auto">
-          <thead>
-            <tr>
-              <th>Artista</th>
-              <th>Item</th>
-              <th>Valor</th>
-              <th>Unidades Restantes</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {produtos.map((produto) => (
-              <tr key={produto.id}>
-                <td>{produto.name}</td>
-                <td>{produto.name}</td>
-                <td>R$ {produto.valor}</td>
-                <td>{produto.min_days}</td>
-                <td>
-                  <button className="btn-edit" onClick={() => handleEdit(produto)}>
-                    <FaCartPlus /> {/* Ícone de lápis */}
-                  </button>
-                  <button className="btn-delete" onClick={() => handlePurchase(produto.id)}>
-                    <BiPurchaseTagAlt /> {/* Ícone de lixeira */}
-                    comprar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="produtos-grid">
+          {produtos.map((espaco) => (
+            <div key={espaco.id} className="produto-card">
+              <img
+                src={`${apiUrl}/${espaco.image_path}`}
+                alt={espaco.name}
+                className="produto-imagem"
+              />
+              <div className="produto-info">
+                <h3>{espaco.name} - {espaco.artist}</h3>
+                <p className="produto-info">{espaco.description}</p>
+                <p className="produto-info">R$ {espaco.valor}</p>
+                <p className="produto-info">
+                  {espaco.remaining > 0 ? 'Disponível' : 'Esgotado'}
+                </p>
+              </div>
+              <div className="produto-acoes">
+                <button className="btn-comprar">
+                  <FaCartPlus /> Comprar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
+  
 }
 
 export default Home;

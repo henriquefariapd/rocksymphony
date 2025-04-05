@@ -53,7 +53,6 @@ const MinhasReservas = ({ apiUrl }) => {
         : "https://rock-symphony-91f7e39d835d.herokuapp.com";
   
     try {
-      debugger
       const response = await fetch(`${apiUrl}/api/generate_receipt`, {
         method: "POST",
         headers: {
@@ -69,7 +68,6 @@ const MinhasReservas = ({ apiUrl }) => {
       }
   
       const data = await response.json();
-      debugger;
     } catch (error) {
       console.error("Erro ao buscar reservas:", error);
     } finally {

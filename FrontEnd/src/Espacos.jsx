@@ -6,6 +6,8 @@ function Espacos() {
   const [espacos, setEspacos] = useState([]);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
+  const [artist, setArtist] = useState('');
+  const [description, setDescription] = useState('');
   const [valor, setValor] = useState('');
   const [remaining, setRemaining] = useState('');
   const [imagem, setImagem] = useState(null);
@@ -59,6 +61,8 @@ function Espacos() {
 
     const formData = new FormData();
     formData.append('name', nome);
+    formData.append('artist', artist);
+    formData.append('description', description);
     formData.append('valor', valor);
     formData.append('remaining', remaining);
     if (imagem) {
@@ -140,7 +144,7 @@ function Espacos() {
           <tbody>
             {espacos.map((espaco) => (
               <tr key={espaco.id}>
-                <td>{espaco.name}</td>
+                <td>{espaco.artist}</td>
                 <td>{espaco.name}</td>
                 <td>R$ {espaco.valor}</td>
                 <td>{espaco.remaining}</td>
@@ -176,6 +180,17 @@ function Espacos() {
       {showCadastro && (
         <form onSubmit={handleSubmit} className="form-cadastro">
           <div className="form-group">
+            <label htmlFor="name">Nome do Artista:</label>
+            <input
+              className="form-control"
+              type="text"
+              id="name"
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
             <label htmlFor="name">Nome do Item:</label>
             <input
               className="form-control"
@@ -183,6 +198,17 @@ function Espacos() {
               id="name"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="name">Descrição:</label>
+            <input
+              className="form-control"
+              type="text"
+              id="name"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               required
             />
           </div>

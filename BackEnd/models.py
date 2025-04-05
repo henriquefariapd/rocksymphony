@@ -31,6 +31,8 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
+    artist = Column(String, index=True, nullable=False)
+    description = Column(String, index=True, nullable=False)
     valor = Column(Integer, nullable=False)
     remaining = Column(Integer, nullable=False)
     image_path = Column(String, nullable=True)

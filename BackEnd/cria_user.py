@@ -28,8 +28,8 @@ def create_data(db: Session):
 
 
 
-    new_product = Product(name="Violeta de Outono", valor=250,  remaining=30)
-    new_product1 = Product(name="Pixinguinha", valor=50, remaining=30)
+    new_product = Product(name="Parachutes", artist='Coldplay',description='Parachutes é o primeiro álbum do Coldplay, lançado em 2000. Ele tem músicas calmas e emotivas, como Yellow, Shiver e Trouble. O disco ajudou a banda a ficar famosa no mundo inteiro, misturando letras sentimentais com melodias suaves. Foi muito elogiado e ganhou até um Grammy como Melhor Álbum de Música Alternativa.', valor=250,  remaining=30)
+    new_product1 = Product(name="Ventura", artist='Los Hermanos',description='Ventura é o terceiro álbum da banda Los Hermanos, lançado em 2003. Ele marcou uma fase mais madura da banda, com músicas que misturam rock, samba e MPB. Canções como O Vencedor, Último Romance e Cara Estranho se destacaram. O álbum foi muito elogiado por suas letras poéticas e arranjos criativos, consolidando Los Hermanos como uma das bandas mais queridas do Brasil.', valor=50, remaining=30)
     
     db.add(new_product)
     db.commit()
