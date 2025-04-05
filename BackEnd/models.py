@@ -1,6 +1,5 @@
 from sqlalchemy import ForeignKey, create_engine, Column, Integer, String, Date, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 import os
 
 # Base para os modelos do SQLAlchemy
