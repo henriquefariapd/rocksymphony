@@ -6,7 +6,7 @@ import random
 import string
 from sqlite3 import OperationalError
 from urllib.parse import urlparse, parse_qs
-from fastapi import FastAPI, Depends, HTTPException, Request, Security, UploadFile, File, status
+from fastapi import FastAPI, Depends, HTTPException, Request, Security, UploadFile, File, status, Form
 from sqlalchemy import Date, text
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -368,9 +368,15 @@ class SpaceCreate(BaseModel):
     min_days: int
 
 # Função para criar um novo espaço
-def create_space(db, name: str, valor: float, namespace_id: str, min_days: int):
+def create_space(db, name: str, valor: float, namespace_id: str, min_days: int, image_path: str = None):
     valor = int(valor)
-    new_space = Product(name=name, valor=valor, namespace_id=namespace_id, min_days=min_days)
+    new_space = Product(
+        name=name,
+        valor=valor,
+        namespace_id=namespace_id,
+        min_days=min_days,
+        image_path=image_path  # nova coluna no seu model (precisa existir)
+    )
     db.add(new_space)
     db.commit()
     db.refresh(new_space)
@@ -378,17 +384,31 @@ def create_space(db, name: str, valor: float, namespace_id: str, min_days: int):
 
 
 @app.post("/spaces")
-async def create_new_space(space: SpaceCreate, current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
+async def create_new_space(
+    name: str = Form(...),
+    valor: float = Form(...),
+    min_days: int = Form(...),
+    image: UploadFile = File(None),
+    current_user: User = Depends(get_logged_user),
+    db: Session = Depends(get_db_session)
+):
     try:
         namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-        new_space = create_space(db, space.name, space.valor, namespace_id, space.min_days)
-        print('batata')
+
+        image_path = None
+        if image:
+            file_location = f"uploads/{image.filename}"
+            with open(file_location, "wb") as buffer:
+                buffer.write(await image.read())
+            image_path = file_location
+
+        new_space = create_space(db, name, valor, namespace_id, min_days, image_path=image_path)
         return {"message": f"Espaço '{new_space.name}' criado com sucesso!"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Erro ao cadastrar espaço: " + str(e))
     finally:
-        db.close() 
+        db.close()
 
 class OrderCreate(BaseModel):
     productName: str

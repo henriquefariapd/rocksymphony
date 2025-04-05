@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { FaEdit, FaTrashAlt } from 'react-icons/fa'; // Importando os ícones
+import { FaEdit, FaTrashAlt } from 'react-icons/fa';
 
 function Espacos() {
   const [espacos, setEspacos] = useState([]);
@@ -8,6 +8,7 @@ function Espacos() {
   const [nome, setNome] = useState('');
   const [valor, setValor] = useState('');
   const [minDays, setMinDays] = useState('');
+  const [imagem, setImagem] = useState(null);
   const [editingEspaco, setEditingEspaco] = useState(null);
 
   const apiUrl = window.location.hostname === 'localhost'
@@ -42,6 +43,10 @@ function Espacos() {
   const handleCadastroClick = () => {
     setShowCadastro(!showCadastro);
     setEditingEspaco(null);
+    setNome('');
+    setValor('');
+    setMinDays('');
+    setImagem(null);
   };
 
   const handleSubmit = async (e) => {
@@ -52,38 +57,34 @@ function Espacos() {
       return;
     }
 
-    const novoEspaco = {
-      name: nome,
-      valor: valor,
-      min_days: minDays,
-    };
+    const formData = new FormData();
+    formData.append('name', nome);
+    formData.append('valor', valor);
+    formData.append('min_days', minDays);
+    if (imagem) {
+      formData.append('image', imagem);
+    }
 
     try {
-      if (editingEspaco) {
-        await fetch(`${apiUrl}/spaces/${editingEspaco.id}`, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(novoEspaco),
-        });
-        toast.success('Espaço atualizado com sucesso!');
-      } else {
-        await fetch(`${apiUrl}/spaces`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(novoEspaco),
-        });
-        toast.success('Espaço cadastrado com sucesso!');
-      }
+      const url = editingEspaco
+        ? `${apiUrl}/spaces/${editingEspaco.id}`
+        : `${apiUrl}/spaces`;
 
+      const method = editingEspaco ? 'PUT' : 'POST';
+
+      await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      toast.success(editingEspaco ? 'Espaço atualizado!' : 'Espaço cadastrado!');
       setNome('');
       setValor('');
       setMinDays('');
+      setImagem(null);
       setShowCadastro(false);
       setEditingEspaco(null);
       fetchEspacos();
@@ -98,6 +99,7 @@ function Espacos() {
     setNome(espaco.name);
     setValor(espaco.valor);
     setMinDays(espaco.min_days);
+    setImagem(null); // não carregamos imagem existente ainda
     setShowCadastro(true);
   };
 
@@ -143,10 +145,10 @@ function Espacos() {
                 <td>{espaco.min_days}</td>
                 <td>
                   <button className="btn-edit" onClick={() => handleEdit(espaco)}>
-                    <FaEdit /> {/* Ícone de lápis */}
+                    <FaEdit />
                   </button>
                   <button className="btn-delete" onClick={() => handleDelete(espaco.id)}>
-                    <FaTrashAlt /> {/* Ícone de lixeira */}
+                    <FaTrashAlt />
                   </button>
                 </td>
               </tr>
@@ -163,18 +165,6 @@ function Espacos() {
         <form onSubmit={handleSubmit} className="form-cadastro">
           <div className="form-group">
             <label htmlFor="name">Nome do Item:</label>
-            <input
-              className="form-control"
-              type="text"
-              id="name"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="name">Nome do Artista:</label>
             <input
               className="form-control"
               type="text"
@@ -208,6 +198,24 @@ function Espacos() {
               required
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="imagem">Imagem do Produto:</label>
+            <input
+              className="form-control"
+              type="file"
+              id="imagem"
+              accept="image/*"
+              onChange={(e) => setImagem(e.target.files[0])}
+            />
+          </div>
+
+          {imagem && (
+            <div style={{ marginTop: '10px' }}>
+              <strong>Preview:</strong><br />
+              <img src={URL.createObjectURL(imagem)} alt="Preview" style={{ maxWidth: '200px' }} />
+            </div>
+          )}
 
           <button type="submit" className="btn-submit">
             {editingEspaco ? 'Atualizar Produto' : 'Cadastrar Produto'}

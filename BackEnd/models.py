@@ -48,6 +48,7 @@ class Order(Base):
     payment_link = Column(String, nullable=True)
     pending = Column(Boolean, default=True)
     active = Column(Boolean, default=True)
+    image_path = Column(String, nullable=True)
     
     product = relationship("Product", back_populates="orders")
     user = relationship("User", back_populates="orders")
