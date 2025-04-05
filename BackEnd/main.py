@@ -44,6 +44,7 @@ mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f41
 #mp = mercadopago.SDK("APP_USR-5748454171895956-033016-e92ea87b73deeaaa1ae7f156e1f28a67-66188553")
 
 app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Permite todos os domínios. Você pode restringir isso para domínios específicos.
@@ -368,13 +369,12 @@ class SpaceCreate(BaseModel):
     min_days: int
 
 # Função para criar um novo espaço
-def create_space(db, name: str, valor: float, namespace_id: str, min_days: int, image_path: str = None):
+def create_space(db, name: str, valor: float, remaining: int, image_path: str = None):
     valor = int(valor)
     new_space = Product(
         name=name,
         valor=valor,
-        namespace_id=namespace_id,
-        min_days=min_days,
+        remaining=remaining,
         image_path=image_path  # nova coluna no seu model (precisa existir)
     )
     db.add(new_space)
@@ -387,14 +387,12 @@ def create_space(db, name: str, valor: float, namespace_id: str, min_days: int, 
 async def create_new_space(
     name: str = Form(...),
     valor: float = Form(...),
-    min_days: int = Form(...),
+    remaining: int = Form(...),
     image: UploadFile = File(None),
     current_user: User = Depends(get_logged_user),
     db: Session = Depends(get_db_session)
 ):
     try:
-        namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-
         image_path = None
         if image:
             file_location = f"uploads/{image.filename}"
@@ -402,7 +400,7 @@ async def create_new_space(
                 buffer.write(await image.read())
             image_path = file_location
 
-        new_space = create_space(db, name, valor, namespace_id, min_days, image_path=image_path)
+        new_space = create_space(db, name, valor, remaining, image_path=image_path)
         return {"message": f"Espaço '{new_space.name}' criado com sucesso!"}
     except Exception as e:
         db.rollback()

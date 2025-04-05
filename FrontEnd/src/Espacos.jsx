@@ -7,7 +7,7 @@ function Espacos() {
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [valor, setValor] = useState('');
-  const [minDays, setMinDays] = useState('');
+  const [remaining, setRemaining] = useState('');
   const [imagem, setImagem] = useState(null);
   const [editingEspaco, setEditingEspaco] = useState(null);
 
@@ -45,7 +45,7 @@ function Espacos() {
     setEditingEspaco(null);
     setNome('');
     setValor('');
-    setMinDays('');
+    setRemaining('');
     setImagem(null);
   };
 
@@ -60,7 +60,7 @@ function Espacos() {
     const formData = new FormData();
     formData.append('name', nome);
     formData.append('valor', valor);
-    formData.append('min_days', minDays);
+    formData.append('remaining', remaining);
     if (imagem) {
       formData.append('image', imagem);
     }
@@ -83,7 +83,7 @@ function Espacos() {
       toast.success(editingEspaco ? 'Espaço atualizado!' : 'Espaço cadastrado!');
       setNome('');
       setValor('');
-      setMinDays('');
+      setRemaining('');
       setImagem(null);
       setShowCadastro(false);
       setEditingEspaco(null);
@@ -98,7 +98,7 @@ function Espacos() {
     setEditingEspaco(espaco);
     setNome(espaco.name);
     setValor(espaco.valor);
-    setMinDays(espaco.min_days);
+    setRemaining(espaco.remaining);
     setImagem(null); // não carregamos imagem existente ainda
     setShowCadastro(true);
   };
@@ -127,22 +127,34 @@ function Espacos() {
         <p>Não há espaços cadastrados no momento.</p>
       ) : (
         <table className="reserv-table m-bottom-20">
-          <thead>
-            <tr>
-              <th>Artista</th>
-              <th>Item</th>
-              <th>Valor</th>
-              <th>Estoque</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
+        <thead>
+          <tr>
+            <th>Artista</th>
+            <th>Item</th>
+            <th>Valor</th>
+            <th>Estoque</th>
+            <th>Imagem</th> {/* <- nova coluna */}
+            <th>Ações</th>
+          </tr>
+        </thead>
           <tbody>
             {espacos.map((espaco) => (
               <tr key={espaco.id}>
                 <td>{espaco.name}</td>
                 <td>{espaco.name}</td>
                 <td>R$ {espaco.valor}</td>
-                <td>{espaco.min_days}</td>
+                <td>{espaco.remaining}</td>
+                <td>
+                  {espaco.image_url ? (
+                    <img
+                      src={`${apiUrl}${espaco.image_url}`}
+                      alt={espaco.name}
+                      style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    'Sem imagem'
+                  )}
+                </td>
                 <td>
                   <button className="btn-edit" onClick={() => handleEdit(espaco)}>
                     <FaEdit />
@@ -188,13 +200,13 @@ function Espacos() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="min_days">Estoque:</label>
+            <label htmlFor="remaining">Estoque:</label>
             <input
               className="form-control"
               type="number"
-              id="min_days"
-              value={minDays}
-              onChange={(e) => setMinDays(e.target.value)}
+              id="remaining"
+              value={remaining}
+              onChange={(e) => setRemaining(e.target.value)}
               required
             />
           </div>

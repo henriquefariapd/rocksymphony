@@ -32,8 +32,8 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     valor = Column(Integer, nullable=False)
-    min_days = Column(Integer, nullable=False)
     remaining = Column(Integer, nullable=False)
+    image_path = Column(String, nullable=True)
     
     orders = relationship("Order", back_populates="product")
 
@@ -48,7 +48,6 @@ class Order(Base):
     payment_link = Column(String, nullable=True)
     pending = Column(Boolean, default=True)
     active = Column(Boolean, default=True)
-    image_path = Column(String, nullable=True)
     
     product = relationship("Product", back_populates="orders")
     user = relationship("User", back_populates="orders")

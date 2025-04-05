@@ -28,8 +28,8 @@ def create_data(db: Session):
 
 
 
-    new_product = Product(name="Violeta de Outono", valor=250, min_days=30, remaining=30)
-    new_product1 = Product(name="Pixinguinha", valor=50, min_days=30, remaining=30)
+    new_product = Product(name="Violeta de Outono", valor=250,  remaining=30)
+    new_product1 = Product(name="Pixinguinha", valor=50, remaining=30)
     
     db.add(new_product)
     db.commit()
