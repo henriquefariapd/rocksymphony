@@ -162,7 +162,7 @@ function Espacos() {
       {showCadastro && (
         <form onSubmit={handleSubmit} className="form-cadastro">
           <div className="form-group">
-            <label htmlFor="name">Nome do Espaço:</label>
+            <label htmlFor="name">Nome do Item:</label>
             <input
               className="form-control"
               type="text"
@@ -174,7 +174,19 @@ function Espacos() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="valor">Valor do Aluguel:</label>
+            <label htmlFor="name">Nome do Artista:</label>
+            <input
+              className="form-control"
+              type="text"
+              id="name"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="valor">Valor:</label>
             <input
               className="form-control"
               type="number"
@@ -186,7 +198,7 @@ function Espacos() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="min_days">Mínimo de Dias:</label>
+            <label htmlFor="min_days">Estoque:</label>
             <input
               className="form-control"
               type="number"
@@ -198,7 +210,7 @@ function Espacos() {
           </div>
 
           <button type="submit" className="btn-submit">
-            {editingEspaco ? 'Atualizar Espaço' : 'Cadastrar Espaço'}
+            {editingEspaco ? 'Atualizar Produto' : 'Cadastrar Produto'}
           </button>
         </form>
       )}

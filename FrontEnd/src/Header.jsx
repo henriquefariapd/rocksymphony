@@ -10,8 +10,12 @@ import './Header.css'; // Estilos do cabeçalho
 function Header({ isLoggedIn, isAdmin, onLogout }) {
   return (
     <header className="header">
-      <GiMusicalScore />
-      <h2>Rock Symphony</h2>
+      <div className='d-flex'>
+      <GiMusicalScore className='align-self-center' />
+      <div className='m-left-10'>
+        <h2>Rock Symphony</h2>
+      </div>
+      </div>
       {isLoggedIn ? (
         <div className="header-buttons">
           <Link to="/" className="space-button">

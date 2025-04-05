@@ -34,10 +34,10 @@ function CadastroEspaco() {
 
   return (
     <div>
-      <h2>Cadastrar Espaço</h2>
+      <h2>Cadastrar Produto</h2>
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="name">Nome do Espaço:</label>
+          <label htmlFor="name">Nome do item:</label>
           <input
             type="text"
             id="name"

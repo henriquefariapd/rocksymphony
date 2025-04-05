@@ -171,7 +171,8 @@ function Home() {
         <table className="reserv-table m-bottom-20 m-0-auto">
           <thead>
             <tr>
-              <th>Nome</th>
+              <th>Artista</th>
+              <th>Item</th>
               <th>Valor</th>
               <th>Unidades Restantes</th>
               <th>Ações</th>
@@ -180,6 +181,7 @@ function Home() {
           <tbody>
             {produtos.map((produto) => (
               <tr key={produto.id}>
+                <td>{produto.name}</td>
                 <td>{produto.name}</td>
                 <td>R$ {produto.valor}</td>
                 <td>{produto.min_days}</td>

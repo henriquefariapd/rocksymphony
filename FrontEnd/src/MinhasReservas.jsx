@@ -147,9 +147,9 @@ const MinhasReservas = ({ apiUrl }) => {
 
   return (
     <div>
-      <h2>Minhas Reservas</h2>
+      <h2>Meus Produtos</h2>
       {reservations.length === 0 ? (
-        <p className="reserv-color">Nenhuma reserva encontrada.</p>
+        <p className="reserv-color">Nenhum produto encontrado.</p>
       ) : (
         <table className="reserv-table">
           <thead>
