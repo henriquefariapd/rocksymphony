@@ -44,6 +44,7 @@ mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f41
 #mp = mercadopago.SDK("APP_USR-5748454171895956-033016-e92ea87b73deeaaa1ae7f156e1f28a67-66188553")
 
 app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
+os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.add_middleware(
     CORSMiddleware,
