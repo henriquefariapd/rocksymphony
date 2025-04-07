@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timedelta
@@ -26,7 +26,7 @@ import yagmail
 from fastapi.security import OAuth2PasswordBearer
 
 from .models import NamespaceConfig, Order, SessionLocal, Product, User
-#from models import NamespaceConfig, Order, SessionLocal, Product, User
+#from models import NamespaceConfig, Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
 from .utils import decode_token
 #from utils import decode_token
 from .config import SECRET_KEY
@@ -240,6 +240,157 @@ async def get_available_spaces(current_user: User = Depends(get_logged_user), db
     if not spaces:
         raise HTTPException(status_code=404, detail="Espaços não encontrados para o namespace")
     return spaces
+
+
+class AddProductToCartRequest(BaseModel):
+    productId: int
+    quantity: int = 1 
+
+@app.post("/api/add_product_to_cart")
+def add_product_to_cart(newProduct: AddProductToCartRequest, db: Session = Depends(get_db_session), current_user: User = Depends(get_logged_user)):
+    # Encontrar o carrinho do usuário
+    
+    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == current_user.id).first()
+    
+    # Se o carrinho não existir, criar um novo
+    if not shopping_cart:
+        shopping_cart = ShoppingCart(user_id=current_user.id)
+        db.add(shopping_cart)
+        db.commit()
+        db.refresh(shopping_cart)
+    
+    # Adicionar o produto ao carrinho (ou atualizar a quantidade, se já existir)
+    cart_product = db.query(ShoppingCartProduct).filter(
+        ShoppingCartProduct.shoppingcart_id == shopping_cart.id,
+        ShoppingCartProduct.product_id == newProduct.productId
+    ).first()
+    
+    if cart_product:
+        cart_product.quantity += newProduct.quantity  # Atualiza a quantidade se o produto já estiver no carrinho
+    else:
+        cart_product = ShoppingCartProduct(
+            shoppingcart_id=shopping_cart.id,
+            product_id=newProduct.productId,
+            quantity=newProduct.quantity
+        )
+        db.add(cart_product)
+    
+    db.commit()
+    db.refresh(cart_product)
+    return cart_product
+
+
+@app.get("/api/get_cart_products")
+def get_cart_products(db: Session = Depends(get_db_session), current_user: User = Depends(get_logged_user)):
+    # Encontrar o carrinho do usuário
+    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == current_user.id).first()
+
+    if not shopping_cart:
+        return []
+
+    # Buscar os produtos do carrinho e suas quantidades
+    cart_items = db.query(ShoppingCartProduct, Product).join(Product).filter(ShoppingCartProduct.shoppingcart_id == shopping_cart.id).all()
+
+    result = []
+    for cart_item, product in cart_items:
+        result.append({
+            "id": product.id,
+            "name": product.name,
+            "valor": product.valor,
+            "quantity": cart_item.quantity  # Retorna a quantidade
+        })
+
+    return result
+
+
+
+@app.post("/api/handle_checkout")
+def create_order(db: Session = Depends(get_db_session), current_user: User = Depends(get_logged_user)):
+    # Encontrar o carrinho do usuário
+    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == current_user.id).first()
+
+    if not shopping_cart:
+        raise HTTPException(status_code=404, detail="Carrinho não encontrado")
+
+    # Obter os produtos do carrinho
+    cart_products = db.query(ShoppingCartProduct).filter(ShoppingCartProduct.shoppingcart_id == shopping_cart.id).all()
+
+    if not cart_products:
+        raise HTTPException(status_code=400, detail="Carrinho está vazio")
+
+    # Criar o pedido
+    new_order = Order(
+        order_date=date.today(),
+        user_id=current_user.id,
+        payment_link=None,  # Este é um campo que você pode atualizar depois com o link de pagamento
+        pending=True,
+        active=True
+    )
+
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+
+    # Criar a relação entre o pedido e os produtos
+
+    total_order_value = 0
+    for cart_product in cart_products:
+        # Associar o produto com o pedido
+        total_order_value += cart_product.product.valor * cart_product.quantity
+        order_product = OrderProduct(
+            order_id=new_order.id,
+            product_id=cart_product.product_id,
+            quantity=cart_product.quantity
+        )
+        db.add(order_product)
+    
+    # Commit para salvar os produtos do pedido
+    db.commit()
+    product_names = ''
+    for cart_product in cart_products:
+        product_names += cart_product.product.name+ ', '
+    
+    product_names = product_names[:-2]
+
+    # Remover os produtos do carrinho
+    db.query(ShoppingCartProduct).filter(ShoppingCartProduct.shoppingcart_id == shopping_cart.id).delete()
+    db.commit()
+
+    payment_data = {
+        "items": [
+            {
+                "title": f"Compra dos Produtos: {product_names}",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": total_order_value  # Ajuste o valor conforme necessário
+            }
+        ],
+        "payer": {
+            "email": "usuario@email.com"  # Troque pelo email real do usuário
+        },
+        "external_reference": str(new_order.id),  # ID da reserva
+        "back_urls": {
+            "success": "http://localhost:5173/minhas-reservas",
+            "failure": "http://localhost:5173/minhas-reservas",
+            "pending": "http://localhost:5173/minhas-reservas"
+        },
+        "auto_return": "approved"
+    }
+
+# 🔹 Faz a requisição para criar o link de pagamento
+    result = mp.preference().create(payment_data)
+
+    if "init_point" not in result["response"]:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao gerar link de pagamento.")
+
+    payment_link = result["response"]["init_point"]  # Link do MercadoPago
+
+    # 🔹 Atualiza o Order com o link de pagamento
+    new_order.payment_link = payment_link
+    db.commit()
+
+    return JSONResponse(status_code=200, content={"message": "Pedido criado com sucesso", "order_id": new_order.id})
 
 @app.get("/api/configuracoes")
 async def get_available_configs(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
@@ -641,10 +792,9 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
 
 @app.get("/api/all_schedules")
 async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), db: Session = Depends(get_db_session)):
-    namespace_id = db.query(User).filter(User.id == current_user.id).first().namespace_id
-    schedules = db.query(Order).join(Product).filter(Product.namespace_id == namespace_id).all()
+    orders = db.query(Order).all()
 
-    if not schedules:
+    if not orders:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Nenhuma reserva encontrada para este usuário"
@@ -652,18 +802,18 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
     result = {
         'schedules': [
             {
-                'id': schedule.id,
-                'schedule_date': schedule.schedule_date.isoformat(),
-                'space_id': schedule.space.id,
-                'space_name': schedule.space.name,
-                'namespace': schedule.space.namespace_id,
-                'payment_link': schedule.payment_link,
-                'pending': schedule.pending,
-                'user_name': schedule.user.username,
-                'cancelled': not schedule.active
+                'id': order.id,
+                'schedule_date': datetime.now(),
+                'space_id': 1,
+                'space_name': ', '.join([order_product.product.name for order_product in order.products]),
+                'namespace': 'bla',
+                'payment_link': order.payment_link,
+                'pending': order.pending,
+                'user_name': order.user.username,
+                'cancelled': not order.active
                 
             }
-            for schedule in schedules
+            for order in orders
         ],
     'is_admin': current_user.is_admin
     }

@@ -111,18 +111,14 @@ const Reservas = ({ apiUrl, isAdmin }) => {
   
 
   useEffect(() => {
+    debugger
     // Se o usuário não for admin, redireciona para outra página
-    if (!isAdmin) {
-      navigate("/"); // ou qualquer outra rota que desejar
-      return;
-    }
-
-
-
-
-
+    // if (!isAdmin) {
+    //   navigate("/"); // ou qualquer outra rota que desejar
+    //   return;
+    // }
     fetchReservations();
-  }, [apiUrl, isAdmin, navigate]); // Adiciona isAdmin na dependência para reavaliar a lógica
+  }, []); // Adiciona isAdmin na dependência para reavaliar a lógica
 
   if (loading) {
     return <p>Carregando pedidos...</p>;
@@ -137,8 +133,8 @@ const Reservas = ({ apiUrl, isAdmin }) => {
         <table className="reserv-table">
           <thead>
             <tr>
-              <th>Locatário</th>
-              <th>Espaço</th>
+              <th>Cliente</th>
+              <th>Pedido</th>
               <th>Data</th>
               <th>Status</th>
               <th>Recibo</th>
