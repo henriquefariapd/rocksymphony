@@ -25,7 +25,7 @@ import mercadopago
 import yagmail
 from fastapi.security import OAuth2PasswordBearer
 
-from .models import NamespaceConfig, Order, SessionLocal, Product, User
+from .models  import NamespaceConfig, Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
 #from models import NamespaceConfig, Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
 from .utils import decode_token
 #from utils import decode_token
