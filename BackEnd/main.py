@@ -181,21 +181,21 @@ def get_schedules(user_id: str, db: Session):
         namespace_id = db.query(User).filter(User.id == int(user_id)).first().namespace_id
         print(namespace_id)
         # Filtra os schedules para o usuário específico
-        schedules = db.query(Order).join(Product).filter(Order.active == True, Product.namespace_id == namespace_id).all()
+        orders = db.query(Order).join(Product).filter(Order.active == True, Product.namespace_id == namespace_id).all()
 
-        if not schedules:
+        if not orders:
             print(f"Nenhum schedule encontrado para o namespace e user_id: {user_id}")
 
         result = [
             {
-                'schedule_date': schedule.schedule_date.isoformat(),  # Converte para string ISO
-                'space_id': schedule.space.id,
-                'space_name': schedule.space.name,
-                'namespace': schedule.space.namespace_id,
+                'schedule_date': order.schedule_date.isoformat(),  # Converte para string ISO
+                'space_id': order.space.id,
+                'space_name': ', '.join([order_product.product.name for order_product in order.products]),
+                'namespace': order.space.namespace_id,
                 # Retorna o payment_link somente para os schedules que pertencem ao usuário
-                'payment_link': schedule.payment_link if schedule.user_id == int(user_id) else None
+                'payment_link': order.payment_link if order.user_id == int(user_id) else None
             }
-            for schedule in schedules
+            for order in orders
         ]
 
         print(f"Schedules encontrados: {len(result)}")
@@ -777,12 +777,13 @@ async def get_schedules_endpoint(current_user: User = Depends(get_logged_user), 
 
     result = [
         {
-            'id': order.id,
-            'space_id': order.product.id,
-            'space_name': order.product.name,
-            'payment_link': order.payment_link,
+            'schedule_date': datetime.now(),  # Converte para string ISO
+            'space_id': 1,
+            'space_name': ', '.join([order_product.product.name for order_product in order.products]),
+            'namespace': '',
             'pending': order.pending,
-            'cancelled': not order.active
+            'cancelled': not order.active,
+            'payment_link': order.payment_link if order.user_id == int(current_user.id) else None
         }
         for order in orders
     ]

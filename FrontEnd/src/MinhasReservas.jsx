@@ -32,6 +32,7 @@ const MinhasReservas = ({ apiUrl }) => {
       }
   
       const data = await response.json();
+
       setReservations(data);
     } catch (error) {
       toast.error("Erro ao buscar reservas");

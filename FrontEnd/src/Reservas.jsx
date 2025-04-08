@@ -111,7 +111,6 @@ const Reservas = ({ apiUrl, isAdmin }) => {
   
 
   useEffect(() => {
-    debugger
     // Se o usuário não for admin, redireciona para outra página
     // if (!isAdmin) {
     //   navigate("/"); // ou qualquer outra rota que desejar
