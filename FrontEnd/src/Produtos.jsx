@@ -92,22 +92,6 @@ function Produtos() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('name', nome);
-    formData.append('artist', artist);
-    formData.append('description', description);
-    formData.append('valor', valor);
-    formData.append('remaining', remaining);
-    if (imagem) {
-      formData.append('file', imagem);
-    }
-
-    // Log do FormData
-    console.log("FormData entries:");
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
-
     try {
       const url = editingProduto
         ? `${apiUrl}/api/products/${editingProduto.id}`
@@ -118,10 +102,31 @@ function Produtos() {
       console.log("URL:", url);
       console.log("Method:", method);
 
+      // Tanto para POST quanto para PUT, usar FormData agora
+      const formData = new FormData();
+      formData.append('name', nome);
+      formData.append('artist', artist);
+      formData.append('description', description);
+      formData.append('valor', valor);
+      formData.append('remaining', remaining);
+      
+      // Adicionar imagem se existir
+      if (imagem) {
+        formData.append('file', imagem);
+        console.log("Adicionando imagem ao FormData:", imagem.name);
+      }
+
+      console.log("Enviando FormData");
+      // Log do FormData
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
+          // Não definir Content-Type para FormData - o browser define automaticamente
         },
         body: formData,
       });

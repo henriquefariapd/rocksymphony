@@ -3,6 +3,7 @@ import json
 import csv
 import random
 import string
+import time
 from sqlite3 import OperationalError
 from urllib.parse import urlparse, parse_qs
 from fastapi import FastAPI, Depends, HTTPException, Request, Security, UploadFile, File, status, Form
@@ -231,16 +232,28 @@ async def create_new_product(
             try:
                 # Ler o conteúdo do arquivo
                 file_content = await file.read()
-                file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+                file_extension = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
                 file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
                 
                 print(f"[DEBUG] Fazendo upload da imagem: {file_name}")
+                
+                # Mapear extensões para MIME types corretos
+                mime_types = {
+                    'jpg': 'image/jpeg',
+                    'jpeg': 'image/jpeg',
+                    'png': 'image/png',
+                    'gif': 'image/gif',
+                    'webp': 'image/webp'
+                }
+                
+                content_type = mime_types.get(file_extension, 'image/jpeg')
+                print(f"[DEBUG] Content-Type: {content_type}")
                 
                 # Upload para o Supabase Storage
                 storage_response = supabase.storage.from_("product-images").upload(
                     file_name, 
                     file_content,
-                    file_options={"content-type": f"image/{file_extension}"}
+                    file_options={"content-type": content_type}
                 )
                 
                 print(f"[DEBUG] Upload response: {storage_response}")
@@ -300,27 +313,108 @@ class ProductUpdate(BaseModel):
 
 @app.put("/api/products/{product_id}")
 async def edit_product(
-    product_id: int, 
-    product: ProductUpdate, 
+    product_id: int,
+    name: str = Form(...),
+    artist: str = Form(...),
+    description: str = Form(...),
+    valor: float = Form(...),
+    remaining: int = Form(...),
+    file: UploadFile = File(None),  # Imagem opcional
     current_user: dict = Depends(get_current_admin_user)
 ):
     """Editar um produto existente (apenas admin)"""
     try:
+        print(f"[DEBUG] Editando produto ID: {product_id}")
+        print(f"[DEBUG] Dados recebidos: name={name}, artist={artist}, valor={valor}, remaining={remaining}")
+        print(f"[DEBUG] Nova imagem: {file.filename if file else 'Nenhuma'}")
+        
+        # Buscar produto atual para obter a imagem antiga
+        current_product = supabase.table("products").select("*").eq("id", product_id).execute()
+        
+        if not current_product.data:
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
+        
+        old_image_path = current_product.data[0].get("image_path")
+        new_image_path = old_image_path  # Manter a imagem atual por padrão
+        
+        # Se uma nova imagem foi enviada, fazer upload
+        if file and file.filename:
+            print(f"[DEBUG] Processando upload da nova imagem: {file.filename}")
+            
+            # Gerar nome único para a nova imagem
+            file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
+            unique_filename = f"{name.replace(' ', '_')}_{int(time.time())}.{file_extension}"
+            
+            print(f"[DEBUG] Nome único gerado: {unique_filename}")
+            
+            # Fazer upload da nova imagem
+            file_content = await file.read()
+            
+            # Mapear extensões para MIME types corretos
+            mime_types = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp'
+            }
+            
+            content_type = mime_types.get(file_extension, 'image/jpeg')
+            print(f"[DEBUG] Content-Type: {content_type}")
+            
+            try:
+                # Upload para o bucket do Supabase
+                upload_response = supabase.storage.from_("product-images").upload(
+                    unique_filename, 
+                    file_content,
+                    {"content-type": content_type}
+                )
+                
+                print(f"[DEBUG] Upload response: {upload_response}")
+                
+                # Obter URL pública da nova imagem
+                public_url_response = supabase.storage.from_("product-images").get_public_url(unique_filename)
+                new_image_path = public_url_response
+                
+                print(f"[DEBUG] Nova URL pública: {new_image_path}")
+                
+                # Deletar a imagem antiga do bucket (se existir e for diferente da nova)
+                if old_image_path and old_image_path != new_image_path:
+                    try:
+                        # Extrair nome do arquivo da URL antiga
+                        old_filename = old_image_path.split('/')[-1] if '/' in old_image_path else old_image_path
+                        if old_filename and old_filename != unique_filename:
+                            delete_response = supabase.storage.from_("product-images").remove([old_filename])
+                            print(f"[DEBUG] Imagem antiga deletada: {old_filename}")
+                    except Exception as e:
+                        print(f"[DEBUG] Erro ao deletar imagem antiga: {e}")
+                        # Não falhar se não conseguir deletar a imagem antiga
+                
+            except Exception as e:
+                print(f"[DEBUG] Erro no upload: {e}")
+                raise HTTPException(status_code=500, detail=f"Erro no upload da imagem: {str(e)}")
+        
         # Atualizar produto no Supabase
-        response = supabase.table("products").update({
-            "name": product.name,
-            "artist": product.artist,
-            "description": product.description,
-            "valor": product.valor,
-            "remaining": product.remaining
-        }).eq("id", product_id).execute()
+        update_data = {
+            "name": name,
+            "artist": artist,
+            "description": description,
+            "valor": valor,
+            "remaining": remaining,
+            "image_path": new_image_path
+        }
+        
+        print(f"[DEBUG] Atualizando produto com dados: {update_data}")
+        
+        response = supabase.table("products").update(update_data).eq("id", product_id).execute()
         
         if response.data:
-            return {"message": f"Produto '{product.name}' atualizado com sucesso!"}
+            return {"message": f"Produto '{name}' atualizado com sucesso!"}
         else:
             raise HTTPException(status_code=404, detail="Produto não encontrado")
         
     except Exception as e:
+        print(f"[DEBUG] Erro ao editar produto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao editar produto: {str(e)}")
 
 @app.delete("/api/products/{product_id}")
