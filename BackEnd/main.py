@@ -62,17 +62,18 @@ app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketpla
 mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f416e2192-96235831")
 
 # Configuração de arquivos estáticos
-app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
-
-# Configuração para uploads (local e Heroku)
-uploads_dir = Path(os.getcwd()) / "BackEnd" / "uploads"
-uploads_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+# Assets do frontend (CSS, JS do Vite)
+frontend_assets_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"
+if frontend_assets_path.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_assets_path)), name="assets")
 
 # Configuração para servir o frontend React (se existir)
 frontend_dist_path = Path(os.getcwd()) / "FrontEnd" / "dist"
 if frontend_dist_path.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
+
+# NOTA: Imagens de produtos são servidas diretamente do Supabase Storage
+# Não precisamos mais servir uploads locais
 
 # Configuração do CORS
 app.add_middleware(
@@ -225,12 +226,14 @@ async def create_new_product(
         if file and file.filename:
             print(f"[DEBUG] Processando arquivo: {file.filename}")
             
-            # Tentar salvar no Supabase Storage primeiro
+            # Salvar imagem no Supabase Storage
             try:
                 # Ler o conteúdo do arquivo
                 file_content = await file.read()
                 file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
                 file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
+                
+                print(f"[DEBUG] Fazendo upload da imagem: {file_name}")
                 
                 # Upload para o Supabase Storage
                 storage_response = supabase.storage.from_("product-images").upload(
@@ -241,39 +244,21 @@ async def create_new_product(
                 
                 print(f"[DEBUG] Upload response: {storage_response}")
                 
-                if storage_response:
-                    # Obter a URL pública da imagem
-                    public_url = supabase.storage.from_("product-images").get_public_url(file_name)
-                    image_path = public_url
-                    print(f"[DEBUG] Imagem salva no Supabase Storage: {image_path}")
+                # Obter a URL pública da imagem
+                public_url = supabase.storage.from_("product-images").get_public_url(file_name)
+                image_path = public_url
+                print(f"[DEBUG] Imagem salva no Supabase Storage: {image_path}")
                 
             except Exception as storage_error:
-                print(f"[DEBUG] Erro ao fazer upload para Supabase Storage: {str(storage_error)}")
-                print(f"[DEBUG] Tentando salvar localmente...")
-                
-                # Fallback: salvar localmente
-                try:
-                    # Resetar o arquivo para o início
-                    await file.seek(0)
-                    file_content = await file.read()
-                    
-                    file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-                    file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
-                    
-                    # Usar caminho absoluto para uploads
-                    uploads_dir = Path(os.getcwd()) / "BackEnd" / "uploads"
-                    file_path = uploads_dir / file_name
-                    
-                    with open(file_path, "wb") as buffer:
-                        buffer.write(file_content)
-                    
-                    image_path = f"uploads/{file_name}"
-                    print(f"[DEBUG] Imagem salva localmente: {image_path}")
-                    print(f"[DEBUG] Caminho completo: {file_path}")
-                    
-                except Exception as local_error:
-                    print(f"[DEBUG] Erro ao salvar localmente: {str(local_error)}")
-                    image_path = None
+                print(f"[ERRO] Erro ao fazer upload para Supabase Storage: {str(storage_error)}")
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"Erro ao fazer upload da imagem: {str(storage_error)}")
+        
+        else:
+            # Produto sem imagem
+            image_path = None
+            print(f"[DEBUG] Produto criado sem imagem")
         
         # Criar novo produto no Supabase
         new_product = {
@@ -374,18 +359,14 @@ async def delete_product(
         # Tentar deletar a imagem se existir
         if image_path:
             try:
-                if image_path.startswith("uploads/"):
-                    # Imagem local
-                    import os
-                    local_path = os.path.join("uploads", image_path.split("/")[-1])
-                    if os.path.exists(local_path):
-                        os.remove(local_path)
-                        print(f"[DEBUG] Imagem local deletada: {local_path}")
-                else:
+                if "supabase" in image_path:
                     # Imagem no Supabase Storage
                     file_name = image_path.split("/")[-1]
                     storage_response = supabase.storage.from_("product-images").remove([file_name])
                     print(f"[DEBUG] Imagem do Supabase Storage deletada: {storage_response}")
+                else:
+                    # Imagem local (legacy)
+                    print(f"[DEBUG] Ignorando imagem local: {image_path}")
                     
             except Exception as img_error:
                 print(f"[DEBUG] Erro ao deletar imagem: {str(img_error)}")
