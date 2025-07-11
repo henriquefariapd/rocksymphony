@@ -115,6 +115,44 @@ function App() {
     }
   }; 
 
+  // Função para remover produto do carrinho
+  const handleRemoveFromCart = async (productId) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token || token === 'undefined') {
+        console.error("Token não encontrado");
+        return;
+      }
+
+      console.log(`Removendo produto ${productId} do carrinho...`);
+      
+      const response = await fetch(`${apiUrl}/api/remove_product_from_cart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          productId: productId
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Resposta do backend:", data);
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Falha ao remover produto do carrinho");
+      }
+
+      // Atualizar lista do carrinho
+      fetchCartItems();
+      
+      console.log("Produto removido com sucesso:", data.message);
+    } catch (error) {
+      console.error("Erro ao remover produto:", error);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token && token !== 'undefined') {
@@ -169,8 +207,22 @@ function App() {
                   {cartItems.map((item) => (
                     <li key={item.id} className="cart-item">
                       <div className="cart-item-details">
-                        <span>{item.name}</span>
-                        <span>{item.quantity} x {item.valor} R$</span>
+                        <div className="cart-item-info">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-artist">{item.artist}</span>
+                        </div>
+                        <div className="cart-item-controls">
+                          <div className="quantity-info">
+                            <span>{item.quantity} x R$ {item.valor}</span>
+                          </div>
+                          <button 
+                            onClick={() => handleRemoveFromCart(item.id)}
+                            className="btn-remove-item"
+                            title="Remover uma unidade"
+                          >
+                            -
+                          </button>
+                        </div>
                       </div>
                     </li>
                   ))}

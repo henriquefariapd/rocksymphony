@@ -710,6 +710,226 @@ def debug_check_tables(db: Session = Depends(get_db_session)):
     except Exception as e:
         return {"error": str(e)}
 
+# ===== ENDPOINTS DE CARRINHO =====
+
+class AddProductToCartRequest(BaseModel):
+    productId: int
+    quantity: int = 1
+
+@app.post("/api/add_product_to_cart")
+def add_product_to_cart(
+    newProduct: AddProductToCartRequest, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Adicionar produto ao carrinho"""
+    try:
+        print('=== DEBUG ADD_PRODUCT_TO_CART ===')
+        print(f'Dados recebidos: productId={newProduct.productId}, quantity={newProduct.quantity}')
+        print(f'Usuário atual: {current_user}')
+
+        # Usar cliente Supabase diretamente para evitar problemas de RLS
+        from supabase_client import supabase
+        
+        user_id = current_user["id"]
+        print(f'User ID: {user_id}')
+        
+        # Buscar ou criar carrinho do usuário
+        print('Buscando carrinho do usuário...')
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        print(f'Resposta do carrinho: {cart_response.data}')
+        
+        if not cart_response.data:
+            print('Criando novo carrinho...')
+            cart_data = {
+                "user_id": user_id
+            }
+            cart_response = supabase.table("shoppingcarts").insert(cart_data).execute()
+            print(f'Carrinho criado: {cart_response.data}')
+            cart_id = cart_response.data[0]["id"]
+        else:
+            cart_id = cart_response.data[0]["id"]
+            print(f'Carrinho encontrado: {cart_id}')
+        
+        # Verificar se o produto já está no carrinho
+        print('Verificando se produto já está no carrinho...')
+        existing_product = supabase.table("shoppingcart_products").select("*").eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
+        print(f'Produto existente: {existing_product.data}')
+        
+        if existing_product.data:
+            # Atualizar quantidade
+            print('Atualizando quantidade...')
+            new_quantity = existing_product.data[0]["quantity"] + newProduct.quantity
+            update_response = supabase.table("shoppingcart_products").update({
+                "quantity": new_quantity
+            }).eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
+            print(f'Quantidade atualizada: {update_response.data}')
+            result = update_response.data[0]
+        else:
+            # Adicionar novo produto
+            print('Adicionando novo produto...')
+            product_data = {
+                "shoppingcart_id": cart_id,
+                "product_id": newProduct.productId,
+                "quantity": newProduct.quantity
+            }
+            add_response = supabase.table("shoppingcart_products").insert(product_data).execute()
+            print(f'Produto adicionado: {add_response.data}')
+            result = add_response.data[0]
+        
+        print('Operação concluída com sucesso')
+        return {"message": "Produto adicionado ao carrinho", "cart_product": result}
+        
+    except Exception as e:
+        print(f'ERRO em add_product_to_cart: {str(e)}')
+        print(f'Tipo do erro: {type(e)}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao adicionar produto ao carrinho: {str(e)}")
+
+@app.get("/api/get_cart_products")
+def get_cart_products(current_user: dict = Depends(get_current_user)):
+    """Obter produtos do carrinho do usuário"""
+    try:
+        print('=== DEBUG GET_CART_PRODUCTS ===')
+        print(f'Usuário atual: {current_user}')
+        
+        from supabase_client import supabase
+        
+        user_id = current_user["id"]
+        print(f'User ID: {user_id}')
+        
+        # Buscar carrinho do usuário
+        print('Buscando carrinho do usuário...')
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        print(f'Resposta do carrinho: {cart_response.data}')
+        
+        if not cart_response.data:
+            print('Carrinho não encontrado, criando novo carrinho...')
+            # Criar carrinho automaticamente para o usuário
+            cart_data = {
+                "user_id": user_id
+            }
+            cart_response = supabase.table("shoppingcarts").insert(cart_data).execute()
+            print(f'Novo carrinho criado: {cart_response.data}')
+            
+            # Retornar lista vazia para carrinho novo
+            return []
+        
+        cart_id = cart_response.data[0]["id"]
+        print(f'Carrinho encontrado: {cart_id}')
+        
+        # Buscar produtos no carrinho com join
+        print('Buscando produtos no carrinho...')
+        cart_products = supabase.table("shoppingcart_products").select(
+            "*, product:products(*)"
+        ).eq("shoppingcart_id", cart_id).execute()
+        
+        print(f'Produtos encontrados: {len(cart_products.data)}')
+        
+        # Formatar resposta
+        formatted_products = []
+        for item in cart_products.data:
+            product = item["product"]
+            formatted_product = {
+                "id": product["id"],
+                "name": product["name"],
+                "artist": product["artist"],
+                "valor": float(product["valor"]),
+                "quantity": item["quantity"],
+                "image_path": product.get("image_path")
+            }
+            formatted_products.append(formatted_product)
+        
+        print(f'Produtos formatados: {formatted_products}')
+        return formatted_products
+        
+    except Exception as e:
+        print(f'ERRO em get_cart_products: {str(e)}')
+        print(f'Tipo do erro: {type(e)}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos do carrinho: {str(e)}")
+
+class RemoveProductFromCartRequest(BaseModel):
+    productId: int
+
+@app.post("/api/remove_product_from_cart")
+def remove_product_from_cart(
+    removeProduct: RemoveProductFromCartRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remover produto do carrinho (diminui quantidade ou remove completamente)"""
+    try:
+        print('=== DEBUG REMOVE_PRODUCT_FROM_CART ===')
+        print(f'Dados recebidos: productId={removeProduct.productId}')
+        print(f'Usuário atual: {current_user}')
+
+        from supabase_client import supabase
+        
+        user_id = current_user["id"]
+        print(f'User ID: {user_id}')
+        
+        # Buscar carrinho do usuário
+        print('Buscando carrinho do usuário...')
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        print(f'Resposta do carrinho: {cart_response.data}')
+        
+        if not cart_response.data:
+            print('Carrinho não encontrado')
+            raise HTTPException(status_code=404, detail="Carrinho não encontrado")
+        
+        cart_id = cart_response.data[0]["id"]
+        print(f'Carrinho encontrado: {cart_id}')
+        
+        # Buscar produto no carrinho
+        print('Buscando produto no carrinho...')
+        cart_product_response = supabase.table("shoppingcart_products").select("*").eq("shoppingcart_id", cart_id).eq("product_id", removeProduct.productId).execute()
+        print(f'Produto no carrinho: {cart_product_response.data}')
+        
+        if not cart_product_response.data:
+            print('Produto não encontrado no carrinho')
+            raise HTTPException(status_code=404, detail="Produto não encontrado no carrinho")
+        
+        cart_product = cart_product_response.data[0]
+        current_quantity = cart_product["quantity"]
+        print(f'Quantidade atual: {current_quantity}')
+        
+        if current_quantity > 1:
+            # Diminuir quantidade em 1
+            print('Diminuindo quantidade em 1...')
+            new_quantity = current_quantity - 1
+            update_response = supabase.table("shoppingcart_products").update({
+                "quantity": new_quantity
+            }).eq("shoppingcart_id", cart_id).eq("product_id", removeProduct.productId).execute()
+            print(f'Quantidade atualizada: {update_response.data}')
+            
+            return {
+                "message": "Quantidade do produto diminuída",
+                "action": "quantity_decreased",
+                "new_quantity": new_quantity,
+                "cart_product": update_response.data[0]
+            }
+        else:
+            # Remover produto completamente (quantidade = 1)
+            print('Removendo produto completamente...')
+            delete_response = supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).eq("product_id", removeProduct.productId).execute()
+            print(f'Produto removido: {delete_response.data}')
+            
+            return {
+                "message": "Produto removido do carrinho",
+                "action": "product_removed",
+                "removed_product": cart_product
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f'ERRO em remove_product_from_cart: {str(e)}')
+        print(f'Tipo do erro: {type(e)}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao remover produto do carrinho: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

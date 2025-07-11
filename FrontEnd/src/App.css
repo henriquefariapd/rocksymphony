@@ -76,40 +76,87 @@
   margin: 0;
 }
 
+/* Estilos para itens do carrinho */
 .cart-item {
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color var(--transition-normal);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-light);
+  transition: all var(--transition-normal);
 }
 
 .cart-item:hover {
-  background-color: var(--bg-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .cart-item:last-child {
   border-bottom: none;
 }
 
-/* Detalhes do item do carrinho */
 .cart-item-details {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-md);
+  width: 100%;
 }
 
-.cart-item-details span:first-child {
+.cart-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.item-name {
   font-weight: 600;
   color: var(--text-primary);
-  font-size: var(--font-size-base);
-  flex: 1;
+  font-size: var(--font-size-sm);
 }
 
-.cart-item-details span:last-child {
-  color: var(--primary-color);
+.item-artist {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+}
+
+/* Controles do item do carrinho */
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.quantity-info {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+/* Botão de remover item */
+.btn-remove-item {
+  background-color: var(--danger-color);
+  color: var(--text-light);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  font-size: var(--font-size-base);
-  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-item:hover {
+  background-color: #c82333;
+  transform: scale(1.1);
+}
+
+.btn-remove-item:active {
+  transform: scale(0.95);
 }
 
 /* Resumo do carrinho */
