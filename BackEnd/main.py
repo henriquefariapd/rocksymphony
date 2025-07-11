@@ -398,7 +398,7 @@ def add_product_to_cart(
         print(f'Usuário atual: {current_user}')
 
         # Usar cliente Supabase diretamente para evitar problemas de RLS
-        from supabase_client import supabase
+        # from supabase_client import supabase
         
         user_id = current_user["id"]
         print(f'User ID: {user_id}')
