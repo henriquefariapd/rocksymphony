@@ -22,13 +22,27 @@ import requests
 import mercadopago
 import yagmail
 
-# Importações para desenvolvimento local
-from models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
+# Importações para desenvolvimento local e Heroku
+try:
+    # Tentativa para Heroku (import relativo)
+    from .models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
+except ImportError:
+    # Fallback para desenvolvimento local (import absoluto)
+    from models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
 
 # Importações do sistema de autenticação Supabase
-from auth_routes import router as auth_router
-from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
-from supabase_client import supabase
+try:
+    from .auth_routes import router as auth_router
+    from .auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
+except ImportError:
+    from auth_routes import router as auth_router
+    from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
+
+# Cliente Supabase
+try:
+    from .supabase_client import supabase
+except ImportError:
+    from supabase_client import supabase
 
 # Criação da instância do FastAPI
 app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketplace de CDs de Rock")
@@ -109,6 +123,16 @@ def get_user_from_supabase(current_user: dict, db: Session):
         import traceback
         traceback.print_exc()
         raise
+
+# Função helper para importar supabase
+def get_supabase():
+    """Importa o cliente supabase (compatível com local e Heroku)"""
+    try:
+        from .supabase_client import supabase
+        return supabase
+    except ImportError:
+        from supabase_client import supabase
+        return supabase
 
 # Endpoints básicos da API
 @app.get("/")
