@@ -1,31 +1,26 @@
--- VERIFICAR E CORRIGIR POLÍTICAS RLS PARA CARRINHO
+-- REVERTER POLÍTICAS RLS RESTRITIVAS E DEIXAR CARRINHO FUNCIONANDO
 -- Execute no SQL Editor do Supabase
 
--- Verificar políticas existentes
-SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
-FROM pg_policies 
-WHERE tablename IN ('shoppingcarts', 'shoppingcart_products');
+-- OPÇÃO 1: Desabilitar RLS completamente para carrinho (mais simples)
+ALTER TABLE shoppingcarts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE shoppingcart_products DISABLE ROW LEVEL SECURITY;
 
--- Se não houver políticas ou estiverem restritivas, executar:
-
--- Remover políticas existentes se houver
+-- OPÇÃO 2: Se não conseguir desabilitar, remover todas as políticas restritivas
+DROP POLICY IF EXISTS "Allow authenticated users to manage shopping carts" ON shoppingcarts;
+DROP POLICY IF EXISTS "Allow authenticated users to manage cart products" ON shoppingcart_products;
 DROP POLICY IF EXISTS "Users can manage their own shopping carts" ON shoppingcarts;
 DROP POLICY IF EXISTS "Users can manage their own cart products" ON shoppingcart_products;
 
--- Criar políticas mais permissivas para carrinho
-CREATE POLICY "Allow authenticated users to manage shopping carts" ON shoppingcarts
-FOR ALL TO authenticated
+-- OPÇÃO 3: Criar política super permissiva (se as anteriores não funcionarem)
+CREATE POLICY "Allow all operations on shopping carts" ON shoppingcarts
+FOR ALL TO public
 USING (true)
 WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated users to manage cart products" ON shoppingcart_products
-FOR ALL TO authenticated
+CREATE POLICY "Allow all operations on cart products" ON shoppingcart_products
+FOR ALL TO public
 USING (true)
 WITH CHECK (true);
-
--- Habilitar RLS se não estiver habilitado
-ALTER TABLE shoppingcarts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shoppingcart_products ENABLE ROW LEVEL SECURITY;
 
 -- Verificar se as tabelas existem e têm dados
 SELECT 'shoppingcarts' as table_name, count(*) as record_count FROM shoppingcarts

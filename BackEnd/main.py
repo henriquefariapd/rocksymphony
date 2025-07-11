@@ -891,6 +891,61 @@ async def debug_test_cart_creation(current_user: dict = Depends(get_current_user
         traceback.print_exc()
         return {"error": str(e), "traceback": traceback.format_exc()}
 
+@app.get("/api/debug/test_cart_detailed")
+async def debug_test_cart_detailed(current_user: dict = Depends(get_current_user)):
+    """Debug detalhado do carrinho em produção"""
+    try:
+        print('[DEBUG CARRINHO] Iniciando teste detalhado...')
+        
+        user_id = current_user["id"]
+        print(f'[DEBUG] User ID: {user_id}')
+        
+        # Testar se consegue acessar tabela shoppingcarts
+        try:
+            cart_search = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+            print(f'[DEBUG] Cart search response: {cart_search}')
+        except Exception as cart_error:
+            print(f'[DEBUG] Erro ao buscar carrinho: {str(cart_error)}')
+            cart_search = {"error": str(cart_error), "data": None}
+        
+        # Testar criar carrinho se não existir
+        cart_creation_result = None
+        if not cart_search.get("data"):
+            try:
+                cart_data = {"user_id": user_id}
+                cart_creation = supabase.table("shoppingcarts").insert(cart_data).execute()
+                print(f'[DEBUG] Cart creation response: {cart_creation}')
+                cart_creation_result = cart_creation
+            except Exception as create_error:
+                print(f'[DEBUG] Erro ao criar carrinho: {str(create_error)}')
+                cart_creation_result = {"error": str(create_error)}
+        
+        # Testar buscar produtos do carrinho
+        cart_products_result = None
+        if cart_search.get("data") or cart_creation_result:
+            try:
+                cart_id = cart_search["data"][0]["id"] if cart_search.get("data") else cart_creation_result["data"][0]["id"]
+                cart_products = supabase.table("shoppingcart_products").select("*, product:products(*)").eq("shoppingcart_id", cart_id).execute()
+                print(f'[DEBUG] Cart products response: {cart_products}')
+                cart_products_result = cart_products
+            except Exception as products_error:
+                print(f'[DEBUG] Erro ao buscar produtos do carrinho: {str(products_error)}')
+                cart_products_result = {"error": str(products_error)}
+        
+        return {
+            "user_id": user_id,
+            "cart_search": cart_search,
+            "cart_creation": cart_creation_result,
+            "cart_products": cart_products_result,
+            "environment": "production" if "herokuapp" in str(os.environ.get("HTTP_HOST", "")) else "local"
+        }
+        
+    except Exception as e:
+        print(f'[DEBUG] Erro geral no teste: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
 # ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
 # Rota para servir o frontend React
 @app.get("/")
