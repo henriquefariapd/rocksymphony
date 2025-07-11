@@ -4,6 +4,7 @@ import { FaEdit, FaTrashAlt } from 'react-icons/fa'; // Importando os ícones
 import { FaCartPlus } from "react-icons/fa";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import LoginModal from './LoginModal';
 import './Home.css';
 
 
@@ -16,6 +17,7 @@ function Home() {
   const [minDays, setMinDays] = useState('');
   const [editingEspaco, setEditingEspaco] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleToggleDescription = (productId) => {
     setExpandedProduct(expandedProduct === productId ? null : productId);
@@ -29,20 +31,23 @@ function Home() {
     try {
       setLoading(true);
       const token = localStorage.getItem("access_token");
-      if (!token) {
-        toast.error("Usuário não autenticado. Por favor, faça login.");
-        return;
-      }
       
       console.log("[DEBUG] Buscando produtos...");
       console.log("[DEBUG] URL:", `${apiUrl}/api/products`);
       console.log("[DEBUG] Token:", token ? "presente" : "ausente");
       
+      // Preparar headers - incluir token apenas se existir
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      
+      if (token && token !== 'undefined') {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${apiUrl}/api/products`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: headers,
       });
       
       console.log("[DEBUG] Response status:", response.status);
@@ -171,7 +176,8 @@ function Home() {
     try {
       const token = localStorage.getItem("access_token");
       if (!token || token == 'undefined') {
-        toast.error("Usuário não autenticado. Por favor, faça login.");
+        // Mostrar modal de login ao invés de toast
+        setShowLoginModal(true);
         return;
       }
 
@@ -191,22 +197,13 @@ function Home() {
       console.log("Resposta do backend:", data);
   
       if (!response.ok) {
-        throw new Error(data.detail || "Falha ao reservar o espaço");
+        throw new Error(data.detail || "Falha ao adicionar produto ao carrinho");
       }
   
-      // setIsModalOpen(false);
-      fetchSchedulesAndSpaces();
-  
-      toast(`${spaceName} foi reservado com sucesso!`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.success("Produto adicionado ao carrinho com sucesso!");
     } catch (error) {
-      console.error("Erro ao reservar:", error);
-      toast.error("Erro ao reservar o espaço. Tente novamente.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      console.error("Erro ao adicionar ao carrinho:", error);
+      toast.error("Erro ao adicionar produto ao carrinho. Tente novamente.");
     }
   }; 
 
@@ -237,6 +234,12 @@ function Home() {
   return (
     <div>
       <h2>Catálogo</h2>
+
+      {/* Modal de Login */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
 
       {loading ? (
         <div className="loading-container">

@@ -43,6 +43,15 @@ async def reset_password(reset_data: PasswordReset):
     """Solicitar reset de senha"""
     return await auth_service.reset_password(reset_data.email)
 
+@router.post("/update-password")
+async def update_password(update_data: dict):
+    """Atualizar senha com token de reset"""
+    return await auth_service.update_password(
+        access_token=update_data.get("access_token"),
+        refresh_token=update_data.get("refresh_token"),
+        new_password=update_data.get("password")
+    )
+
 @router.get("/admin-only")
 async def admin_only(current_user: dict = Depends(get_current_admin_user)):
     """Endpoint apenas para administradores"""

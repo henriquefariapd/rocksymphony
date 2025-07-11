@@ -26,7 +26,7 @@ function Login({ setIsLoggedIn }) {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token && token != 'undefined') {
-      setIsLoggedIn(true);  // Atualiza o estado de login diretamente ao carregar
+      setIsLoggedIn(true);
       navigate('/');
     }
   }, [setIsLoggedIn, navigate]);
@@ -58,7 +58,7 @@ function Login({ setIsLoggedIn }) {
             password: password
           },
           {
-            timeout: 10000 // 10 segundos de timeout
+            timeout: 10000
           }
         );
 
@@ -68,7 +68,6 @@ function Login({ setIsLoggedIn }) {
 
         if (response.status === 200) {
           console.log("Login successful!");
-          // Armazenar o token no localStorage
           localStorage.setItem('access_token', response.data.access_token);
           localStorage.setItem("user_id", response.data.user.id);
           localStorage.setItem("email", response.data.user.email);
@@ -82,15 +81,13 @@ function Login({ setIsLoggedIn }) {
           console.log("usuario:", response.data.user.usuario);
           console.log("is_admin:", response.data.user.is_admin);
 
-          // Atualizar o estado de login
-          setIsLoggedIn(true);  // Alterar para refletir que o usuário está logado
+          setIsLoggedIn(true);
           console.log("Recarregando página...");
           location.reload();
-            // Redireciona para a página principal
         }
       } catch (requestError) {
         console.error("Erro na requisição:", requestError);
-        throw requestError; // Re-throw para ser capturado pelo catch externo
+        throw requestError;
       }
     } catch (err) {
       console.error("Erro completo no login:", err);
@@ -145,7 +142,7 @@ function Login({ setIsLoggedIn }) {
           usuario: registerUsername
         },
         {
-          timeout: 10000 // 10 segundos de timeout
+          timeout: 10000
         }
       );
 
@@ -242,7 +239,7 @@ function Login({ setIsLoggedIn }) {
           email: resetEmail
         },
         {
-          timeout: 10000 // 10 segundos de timeout
+          timeout: 10000
         }
       );
 

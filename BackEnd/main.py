@@ -174,9 +174,10 @@ def health_db():
 # ===== ENDPOINTS DE PRODUTOS =====
 
 @app.get("/api/products")
-async def get_available_products(current_user: dict = Depends(get_current_user)):
-    """Buscar todos os produtos disponíveis"""
-    print(f"[DEBUG] Buscando produtos para usuário: {current_user['id']}")
+async def get_available_products(current_user: dict = Depends(get_current_user_optional)):
+    """Buscar todos os produtos disponíveis - acesso público"""
+    user_id = current_user['id'] if current_user else "anônimo"
+    print(f"[DEBUG] Buscando produtos para usuário: {user_id}")
     
     try:
         # Buscar produtos no Supabase
@@ -189,7 +190,7 @@ async def get_available_products(current_user: dict = Depends(get_current_user))
             return response.data
         else:
             print("[DEBUG] Nenhum produto encontrado no Supabase")
-            raise HTTPException(status_code=404, detail="Produtos não encontrados")
+            return []  # Retornar lista vazia ao invés de erro para usuários não logados
             
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")

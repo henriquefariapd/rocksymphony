@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom'; // Se estiver usando React Router 
-import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport } from 'react-icons/fa'; // Importando ícones do React Icons
+import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt } from 'react-icons/fa'; // Importando ícones do React Icons
 import { AiOutlineSchedule } from "react-icons/ai";
 import { GrConfigure } from "react-icons/gr";
 import { GiMusicalScore } from "react-icons/gi";
 import { FaHome } from "react-icons/fa";
 import './Header.css'; // Estilos do cabeçalho
 
-function Header({ isLoggedIn, isAdmin, onLogout }) {
+function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
   return (
     <header className="header">
       <div className='d-flex'>
@@ -55,7 +55,14 @@ function Header({ isLoggedIn, isAdmin, onLogout }) {
           </button>
         </div>
       ) : (
-        <></>
+        <div className="header-buttons">
+          <Link to="/" className="space-button">
+            <FaHome /> Home {/* Ícone de home */}
+          </Link>
+          <Link to="/login" className="login-button">
+            <FaSignInAlt /> Login {/* Ícone de login */}
+          </Link>
+        </div>
       )}
     </header>
   );

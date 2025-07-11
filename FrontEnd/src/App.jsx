@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from './Login';
 import Home from './Home';
+import ResetPassword from './ResetPassword';
 import axios from 'axios';
 import Header from './Header';
 import Produtos from './Produtos';
@@ -10,6 +11,7 @@ import Reservas from './Reservas';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
+import LoginModal from './LoginModal';
 import { CiShoppingCart } from "react-icons/ci";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import './App.css';
@@ -19,9 +21,14 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarAberto, setSidebarAberto] = useState(false);
   const [cartItems, setCartItems] = useState([]); // Estado para armazenar os itens do carrinho
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarAberto(!sidebarAberto);
+  };
+
+  const handleLogin = () => {
+    setShowLoginModal(true);
   };
 
   const apiUrl =
@@ -170,9 +177,27 @@ function App() {
     window.location.href = '/';
   };
 
+  // Função para lidar com o login bem-sucedido
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    const token = localStorage.getItem("access_token");
+    if (token && token !== 'undefined') {
+      setIsLoggedIn(true);
+      fetchMe();
+      fetchCartItems();
+    }
+  };
+
   return (
     <Router>
-      <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />
+      <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} onLogin={handleLogin} />
+
+      {/* Modal de Login */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
       {isLoggedIn && (
         <>
@@ -250,14 +275,15 @@ function App() {
 
 
       <Routes>
-        <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/produtos" element={<Produtos />} />
-        <Route path="/minhas-reservas" element={<MinhasReservas />} />
-        <Route path="/pedidos" element={<Reservas />} />
-        <Route path="/configuracoes" element={<Configuracoes />} />
-        <Route path="/importar-usuarios" element={<ImportarUsuarios />} />
-        <Route path="/usuarios" element={<ListaUsuarios />} />
+        <Route path="/minhas-reservas" element={isLoggedIn ? <MinhasReservas /> : <Navigate to="/login" />} />
+        <Route path="/pedidos" element={isLoggedIn ? <Reservas /> : <Navigate to="/login" />} />
+        <Route path="/configuracoes" element={isLoggedIn ? <Configuracoes /> : <Navigate to="/login" />} />
+        <Route path="/importar-usuarios" element={isLoggedIn ? <ImportarUsuarios /> : <Navigate to="/login" />} />
+        <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </Router>
   );

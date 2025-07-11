@@ -1,0 +1,152 @@
+/* LoginModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-xl);
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  animation: modalSlideIn 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: white;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  transform: scale(1.1);
+}
+
+.modal-header {
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.modal-body p {
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-direction: column;
+}
+
+.btn-login-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  transition: all 0.3s ease;
+  border: 2px solid var(--primary-color);
+}
+
+.btn-login-modal:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md);
+}
+
+.btn-cancel-modal {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel-modal:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  .modal-content {
+    width: 95%;
+    margin: var(--spacing-md);
+  }
+  
+  .modal-actions {
+    gap: var(--spacing-sm);
+  }
+  
+  .btn-login-modal,
+  .btn-cancel-modal {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+}

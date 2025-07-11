@@ -223,14 +223,78 @@ class AuthService:
     async def reset_password(self, email: str):
         """Envia email para reset de senha"""
         try:
-            self.supabase.auth.reset_password_email(email)
-            return {"message": "Email de recuperação enviado"}
+            # Configurar a URL de redirecionamento para nossa página de reset
+            # Detectar se estamos em desenvolvimento ou produção
+            import os
+            if os.getenv("ENVIRONMENT") == "production":
+                redirect_url = "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/reset-password"
+            else:
+                redirect_url = "http://localhost:5173/reset-password"
+            
+            # Usar o método correto do Supabase
+            response = self.supabase.auth.reset_password_email(
+                email,
+                {
+                    "redirect_to": redirect_url,
+                    "data": {
+                        "redirect_url": redirect_url
+                    }
+                }
+            )
+            
+            print(f"[DEBUG] Reset password response: {response}")
+            return {"message": "Email de recuperação enviado. Verifique sua caixa de entrada."}
         except Exception as e:
+            print(f"[ERROR] Reset password error: {str(e)}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Erro ao enviar email de recuperação: {str(e)}"
             )
 
+    async def update_password(self, access_token: str, refresh_token: str, new_password: str):
+        """Atualiza a senha do usuário usando tokens de reset"""
+        try:
+            if not access_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Token de acesso é obrigatório"
+                )
+            
+            print(f"[DEBUG] Updating password with token: {access_token[:20]}...")
+            
+            # Definir a sessão com os tokens
+            session_response = self.supabase.auth.set_session(access_token, refresh_token)
+            
+            if not session_response.user:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Tokens inválidos ou expirados"
+                )
+            
+            print(f"[DEBUG] Session set successfully for user: {session_response.user.id}")
+            
+            # Atualizar a senha
+            update_response = self.supabase.auth.update_user({
+                "password": new_password
+            })
+            
+            if update_response.user:
+                print(f"[DEBUG] Password updated successfully for user: {update_response.user.id}")
+                return {"message": "Senha atualizada com sucesso"}
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Erro ao atualizar senha"
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[ERROR] Update password error: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Erro ao atualizar senha: {str(e)}"
+            )
 # Instância do serviço de autenticação
 auth_service = AuthService()
 
