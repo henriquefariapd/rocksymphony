@@ -696,6 +696,36 @@ async def get_user_orders(
 
 # ===== ENDPOINTS DE ADMINISTRAÇÃO =====
 
+@app.get("/api/usuarios")
+async def list_usuarios(
+    skip: int = 0, 
+    limit: int = 100, 
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Listar usuários do Supabase (apenas admin)"""
+    try:
+        print(f"[DEBUG] Buscando usuários no Supabase...")
+        
+        # Buscar usuários da nossa tabela users (que já contém o email)
+        response = supabase.table("users").select("*").range(skip, skip + limit - 1).execute()
+        
+        print(f"[DEBUG] Usuários encontrados: {len(response.data) if response.data else 0}")
+        
+        if response.data:
+            # Adicionar username para compatibilidade com o frontend
+            for user in response.data:
+                user["username"] = user.get("usuario", "")
+            
+            return response.data
+        else:
+            return []
+            
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar usuários: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar usuários: {str(e)}")
+
 @app.get("/api/admin/users")
 async def list_users(
     skip: int = 0, 
@@ -760,6 +790,113 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "usuario": current_user.get("usuario"),
         "is_admin": current_user.get("is_admin", False)
     }
+
+# Pydantic models para usuários
+class UsuarioCreate(BaseModel):
+    email: str
+    password: str
+    username: str = ""
+    is_admin: bool = False
+
+class UsuarioUpdate(BaseModel):
+    username: str = ""
+    is_admin: bool = False
+
+@app.post("/api/usuarios")
+async def create_usuario(
+    usuario: UsuarioCreate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Criar novo usuário (apenas admin)"""
+    try:
+        print(f"[DEBUG] Criando usuário: {usuario.email}")
+        
+        # Criar usuário no Supabase Auth
+        auth_response = supabase.auth.admin.create_user({
+            "email": usuario.email,
+            "password": usuario.password,
+            "user_metadata": {
+                "username": usuario.username,
+                "is_admin": usuario.is_admin
+            }
+        })
+        
+        if auth_response.user:
+            # Criar entrada na tabela users
+            user_data = {
+                "id": auth_response.user.id,
+                "usuario": usuario.username,
+                "is_admin": usuario.is_admin
+            }
+            
+            table_response = supabase.table("users").insert(user_data).execute()
+            
+            return {"message": "Usuário criado com sucesso", "user": table_response.data[0]}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao criar usuário no Supabase Auth")
+            
+    except Exception as e:
+        print(f"[DEBUG] Erro ao criar usuário: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar usuário: {str(e)}")
+
+@app.put("/api/usuarios/{user_id}")
+async def update_usuario(
+    user_id: str,
+    usuario: UsuarioUpdate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Atualizar usuário (apenas admin)"""
+    try:
+        print(f"[DEBUG] Atualizando usuário: {user_id}")
+        
+        # Atualizar na tabela users
+        response = supabase.table("users").update({
+            "usuario": usuario.username,
+            "is_admin": usuario.is_admin
+        }).eq("id", user_id).execute()
+        
+        if response.data:
+            return {"message": "Usuário atualizado com sucesso", "user": response.data[0]}
+        else:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            
+    except Exception as e:
+        print(f"[DEBUG] Erro ao atualizar usuário: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar usuário: {str(e)}")
+
+@app.delete("/api/usuarios/{user_id}")
+async def delete_usuario(
+    user_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Deletar usuário (apenas admin)"""
+    try:
+        print(f"[DEBUG] Deletando usuário: {user_id}")
+        
+        # Buscar usuário primeiro para obter nome
+        user_response = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if not user_response.data:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+        user = user_response.data[0]
+        
+        # Deletar da tabela users
+        delete_response = supabase.table("users").delete().eq("id", user_id).execute()
+        
+        # Tentar deletar do Supabase Auth (pode falhar se o usuário não existir mais)
+        try:
+            supabase.auth.admin.delete_user(user_id)
+        except Exception as auth_error:
+            print(f"[DEBUG] Erro ao deletar do Auth (ignorado): {str(auth_error)}")
+        
+        return {"message": f"Usuário '{user.get('usuario', user_id)}' deletado com sucesso"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao deletar usuário: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar usuário: {str(e)}")
 
 # ===== ENDPOINT TEMPORÁRIO PARA DEBUG =====
 
@@ -939,6 +1076,52 @@ async def debug_test_cart_detailed(current_user: dict = Depends(get_current_user
         
     except Exception as e:
         print(f'[DEBUG] Erro geral no teste: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
+@app.get("/api/debug/test_user_email/{user_id}")
+async def debug_test_user_email(
+    user_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Debug: testar busca de email específico"""
+    try:
+        print(f"[DEBUG] Testando busca de email para usuário: {user_id}")
+        
+        # Método 1: Admin API
+        try:
+            auth_response = supabase.auth.admin.get_user_by_id(user_id)
+            print(f"[DEBUG] Admin API response: {auth_response}")
+            
+            if auth_response and hasattr(auth_response, 'user') and auth_response.user:
+                email_admin = auth_response.user.email
+                print(f"[DEBUG] Email via Admin API: {email_admin}")
+            else:
+                email_admin = "N/A - Admin API failed"
+        except Exception as e:
+            email_admin = f"ERRO Admin API: {str(e)}"
+            print(f"[DEBUG] Erro Admin API: {str(e)}")
+        
+        # Método 2: Buscar na tabela users
+        try:
+            user_response = supabase.table("users").select("*").eq("id", user_id).execute()
+            print(f"[DEBUG] User table response: {user_response}")
+            user_data = user_response.data[0] if user_response.data else None
+        except Exception as e:
+            user_data = f"ERRO User table: {str(e)}"
+            print(f"[DEBUG] Erro User table: {str(e)}")
+        
+        return {
+            "user_id": user_id,
+            "email_admin_api": email_admin,
+            "user_table_data": user_data,
+            "supabase_url": os.environ.get("SUPABASE_URL", "NOT_SET")[:50] + "...",
+            "has_service_key": bool(os.environ.get("SUPABASE_SERVICE_KEY"))
+        }
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro geral: {str(e)}")
         import traceback
         traceback.print_exc()
         return {"error": str(e), "traceback": traceback.format_exc()}

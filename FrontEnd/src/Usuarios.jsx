@@ -47,8 +47,8 @@ function ListaUsuarios() {
 
   const handleEdit = (usuario) => {
     setEditingUsuario(usuario);
-    setNome(usuario.username);
-    setEmail(usuario.email);
+    setNome(usuario.usuario || usuario.username || '');
+    setEmail(usuario.email || '');
     setShowCadastro(true);
   };
 
@@ -146,8 +146,8 @@ function ListaUsuarios() {
               usuarios.map((user) => (
                 <tr key={user.id}>
                   <td>{user.id}</td>
-                  <td>{user.username}</td>
-                  <td>{user.email}</td>
+                  <td>{user.usuario || user.username || 'N/A'}</td>
+                  <td>{user.email || 'N/A'}</td>
                   <td>
                     <div className='d-flex justify-evenly'>
                         <button onClick={() => handleEdit(user)}>
