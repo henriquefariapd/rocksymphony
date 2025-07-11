@@ -141,41 +141,96 @@ async def create_new_product(
     valor: float = Form(...),
     remaining: int = Form(...),
     file: UploadFile = File(None),
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_user)  # Mudei para get_current_user temporariamente
 ):
     """Criar um novo produto (apenas admin)"""
     try:
+        print(f"[DEBUG] Criando produto: {name} - {artist}")
+        print(f"[DEBUG] Usuário: {current_user['id']} (admin: {current_user.get('is_admin')})")
+        
+        # Verificar se é admin
+        if not current_user.get('is_admin'):
+            print(f"[DEBUG] Usuário não é admin: {current_user}")
+            raise HTTPException(status_code=403, detail="Apenas administradores podem criar produtos")
+        
         image_path = None
-        if file:
-            # Salvar o arquivo de imagem
-            file_extension = file.filename.split(".")[-1]
-            file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
-            file_path = os.path.join("uploads", file_name)
+        if file and file.filename:
+            print(f"[DEBUG] Processando arquivo: {file.filename}")
             
-            with open(file_path, "wb") as buffer:
-                content = await file.read()
-                buffer.write(content)
-            
-            image_path = f"uploads/{file_name}"
+            # Tentar salvar no Supabase Storage primeiro
+            try:
+                # Ler o conteúdo do arquivo
+                file_content = await file.read()
+                file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+                file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
+                
+                # Upload para o Supabase Storage
+                storage_response = supabase.storage.from_("product-images").upload(
+                    file_name, 
+                    file_content,
+                    file_options={"content-type": f"image/{file_extension}"}
+                )
+                
+                print(f"[DEBUG] Upload response: {storage_response}")
+                
+                if storage_response:
+                    # Obter a URL pública da imagem
+                    public_url = supabase.storage.from_("product-images").get_public_url(file_name)
+                    image_path = public_url
+                    print(f"[DEBUG] Imagem salva no Supabase Storage: {image_path}")
+                
+            except Exception as storage_error:
+                print(f"[DEBUG] Erro ao fazer upload para Supabase Storage: {str(storage_error)}")
+                print(f"[DEBUG] Tentando salvar localmente...")
+                
+                # Fallback: salvar localmente
+                try:
+                    # Resetar o arquivo para o início
+                    await file.seek(0)
+                    file_content = await file.read()
+                    
+                    file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+                    file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
+                    file_path = os.path.join("uploads", file_name)
+                    
+                    with open(file_path, "wb") as buffer:
+                        buffer.write(file_content)
+                    
+                    image_path = f"uploads/{file_name}"
+                    print(f"[DEBUG] Imagem salva localmente: {image_path}")
+                    
+                except Exception as local_error:
+                    print(f"[DEBUG] Erro ao salvar localmente: {str(local_error)}")
+                    image_path = None
         
         # Criar novo produto no Supabase
         new_product = {
             "name": name,
             "artist": artist,
             "description": description,
-            "valor": int(valor),
+            "valor": float(valor),
             "remaining": remaining,
             "image_path": image_path
         }
         
+        print(f"[DEBUG] Dados do produto: {new_product}")
+        
         response = supabase.table("products").insert(new_product).execute()
         
+        print(f"[DEBUG] Resposta do Supabase: {response}")
+        
         if response.data:
+            print(f"[DEBUG] Produto criado com sucesso: {response.data[0]}")
             return {"message": f"Produto '{name}' criado com sucesso!", "product": response.data[0]}
         else:
+            print(f"[DEBUG] Erro: response.data está vazio")
             raise HTTPException(status_code=500, detail="Erro ao criar produto no banco")
         
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[DEBUG] Erro ao criar produto: {str(e)}")
+        print(f"[DEBUG] Tipo do erro: {type(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao criar produto: {str(e)}")
 
 class ProductUpdate(BaseModel):
@@ -472,6 +527,30 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "usuario": current_user.get("usuario"),
         "is_admin": current_user.get("is_admin", False)
     }
+
+# ===== ENDPOINT TEMPORÁRIO PARA DEBUG =====
+
+@app.get("/api/debug/user")
+async def debug_user(current_user: dict = Depends(get_current_user)):
+    """Debug: verificar dados do usuário atual"""
+    try:
+        print(f"[DEBUG] Verificando usuário: {current_user['id']}")
+        
+        # Tentar buscar diretamente no Supabase
+        user_response = supabase.table("users").select("*").eq("id", current_user['id']).execute()
+        print(f"[DEBUG] Resposta da busca: {user_response}")
+        
+        return {
+            "current_user": current_user,
+            "supabase_query": user_response.data,
+            "found_in_table": len(user_response.data) > 0,
+            "is_admin": user_response.data[0].get("is_admin") if user_response.data else False
+        }
+    except Exception as e:
+        print(f"[DEBUG] Erro no debug: {str(e)}")
+        return {"error": str(e), "current_user": current_user}
+
+# ===== FIM DO DEBUG =====
 
 if __name__ == "__main__":
     import uvicorn

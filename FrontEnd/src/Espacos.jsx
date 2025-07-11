@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
+import './Espacos.css';
 
 function Espacos() {
   const [espacos, setEspacos] = useState([]);
@@ -296,9 +297,9 @@ function Espacos() {
           </div>
 
           {imagem && (
-            <div style={{ marginTop: '10px' }}>
-              <strong>Preview:</strong><br />
-              <img src={URL.createObjectURL(imagem)} alt="Preview" style={{ maxWidth: '200px' }} />
+            <div className="image-preview">
+              <strong>Preview da Imagem:</strong><br />
+              <img src={URL.createObjectURL(imagem)} alt="Preview" />
             </div>
           )}
 
