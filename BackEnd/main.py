@@ -49,7 +49,7 @@ except ImportError:
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         from auth_routes import router as auth_router
         from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
-        from supabase_client import supabase
+        # from supabase_client import supabase (removido para evitar erro no Heroku)
 
 def get_supabase_client():
     """Função helper para obter cliente Supabase (funciona local e Heroku)"""
@@ -398,8 +398,7 @@ def add_product_to_cart(
         print(f'Usuário atual: {current_user}')
 
         # Usar cliente Supabase diretamente para evitar problemas de RLS
-        # from supabase_client import supabase
-        
+        #    # Usar o cliente já importado no início do arquivo
         user_id = current_user["id"]
         print(f'User ID: {user_id}')
         
@@ -463,8 +462,7 @@ def get_cart_products(current_user: dict = Depends(get_current_user)):
         print('=== DEBUG GET_CART_PRODUCTS ===')
         print(f'Usuário atual: {current_user}')
         
-        from supabase_client import supabase
-        
+        # Usar o cliente já importado no início do arquivo
         user_id = current_user["id"]
         print(f'User ID: {user_id}')
         
@@ -534,8 +532,7 @@ def remove_product_from_cart(
         print(f'Dados recebidos: productId={removeProduct.productId}')
         print(f'Usuário atual: {current_user}')
 
-        from supabase_client import supabase
-        
+        # Usar o cliente já importado no início do arquivo
         user_id = current_user["id"]
         print(f'User ID: {user_id}')
         
