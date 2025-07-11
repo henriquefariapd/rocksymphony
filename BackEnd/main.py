@@ -32,17 +32,24 @@ except ImportError:
 
 # Importações do sistema de autenticação Supabase
 try:
-    from .auth_routes import router as auth_router
-    from .auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
-except ImportError:
+    # Tentativa para desenvolvimento local (import absoluto)
     from auth_routes import router as auth_router
     from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
-
-# Cliente Supabase
-try:
-    from .supabase_client import supabase
-except ImportError:
     from supabase_client import supabase
+except ImportError:
+    try:
+        # Tentativa para Heroku (import relativo)
+        from .auth_routes import router as auth_router
+        from .auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
+        from .supabase_client import supabase
+    except ImportError:
+        # Fallback final
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from auth_routes import router as auth_router
+        from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
+        from supabase_client import supabase
 
 def get_supabase_client():
     """Função helper para obter cliente Supabase (funciona local e Heroku)"""
