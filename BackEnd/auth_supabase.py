@@ -56,10 +56,11 @@ class AuthService:
             })
             
             if auth_response.user:
-                # Criar entrada na tabela users (sem email)
+                # Criar entrada na tabela users incluindo o email
                 user_data = {
                     "id": auth_response.user.id,
                     "usuario": usuario,
+                    "email": email,  # Salvar email na nossa tabela
                     "is_admin": is_admin
                 }
                 

@@ -822,10 +822,11 @@ async def create_usuario(
         })
         
         if auth_response.user:
-            # Criar entrada na tabela users
+            # Criar entrada na tabela users incluindo o email
             user_data = {
                 "id": auth_response.user.id,
                 "usuario": usuario.username,
+                "email": usuario.email,  # Salvar email na nossa tabela
                 "is_admin": usuario.is_admin
             }
             
@@ -897,6 +898,52 @@ async def delete_usuario(
     except Exception as e:
         print(f"[DEBUG] Erro ao deletar usuário: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao deletar usuário: {str(e)}")
+
+@app.post("/api/register")
+async def register_usuario(
+    usuario: UsuarioCreate
+):
+    """Registrar novo usuário (público)"""
+    try:
+        print(f"[DEBUG] Registrando usuário: {usuario.email}")
+        
+        # Criar usuário no Supabase Auth
+        auth_response = supabase.auth.sign_up({
+            "email": usuario.email,
+            "password": usuario.password,
+            "options": {
+                "data": {
+                    "username": usuario.username,
+                    "is_admin": False  # Usuários cadastrados pelo público não são admin
+                }
+            }
+        })
+        
+        if auth_response.user:
+            # Criar entrada na tabela users incluindo o email
+            user_data = {
+                "id": auth_response.user.id,
+                "usuario": usuario.username or usuario.email.split('@')[0],  # Se não tiver username, usar parte do email
+                "email": usuario.email,
+                "is_admin": False  # Usuários cadastrados pelo público não são admin
+            }
+            
+            table_response = supabase.table("users").insert(user_data).execute()
+            
+            return {
+                "message": "Usuário registrado com sucesso! Verifique seu email para confirmar a conta.",
+                "user": {
+                    "id": auth_response.user.id,
+                    "email": auth_response.user.email,
+                    "username": usuario.username
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao registrar usuário no Supabase Auth")
+            
+    except Exception as e:
+        print(f"[DEBUG] Erro ao registrar usuário: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar usuário: {str(e)}")
 
 # ===== ENDPOINT TEMPORÁRIO PARA DEBUG =====
 
