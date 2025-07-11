@@ -149,6 +149,8 @@ function Espacos() {
   const handleEdit = (espaco) => {
     setEditingEspaco(espaco);
     setNome(espaco.name);
+    setArtist(espaco.artist);
+    setDescription(espaco.description);
     setValor(espaco.valor);
     setRemaining(espaco.remaining);
     setImagem(null); // não carregamos imagem existente ainda
@@ -156,17 +158,44 @@ function Espacos() {
   };
 
   const handleDelete = async (espacoId) => {
-    const confirmDelete = window.confirm('Tem certeza que deseja excluir este espaço?');
+    const confirmDelete = window.confirm('Tem certeza que deseja excluir este produto?');
     if (confirmDelete) {
       try {
-        await fetch(`${apiUrl}/api/products/${espacoId}`, {
+        const token = localStorage.getItem("access_token");
+        
+        console.log("=== DEBUG DELETE ===");
+        console.log("Token:", token);
+        console.log("Produto ID:", espacoId);
+        console.log("URL:", `${apiUrl}/api/products/${espacoId}`);
+        
+        if (!token) {
+          toast.error("Usuário não autenticado. Por favor, faça login.");
+          return;
+        }
+        
+        const response = await fetch(`${apiUrl}/api/products/${espacoId}`, {
           method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        toast.success('Espaço excluído com sucesso!');
-        fetchEspacos();
+        
+        console.log("Response status:", response.status);
+        console.log("Response ok:", response.ok);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log("Response data:", responseData);
+          toast.success('Produto excluído com sucesso!');
+          fetchEspacos();
+        } else {
+          const errorData = await response.json();
+          console.log("Error data:", errorData);
+          toast.error(`Erro: ${errorData.detail || 'Erro desconhecido'}`);
+        }
       } catch (error) {
-        toast.error('Erro ao excluir o espaço');
-        console.error('Erro ao excluir o espaço:', error);
+        console.error('Erro completo ao excluir:', error);
+        toast.error('Erro ao excluir o produto');
       }
     }
   };

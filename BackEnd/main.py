@@ -268,24 +268,63 @@ async def edit_product(
 @app.delete("/api/products/{product_id}")
 async def delete_product(
     product_id: int, 
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_user)  # Mudei para get_current_user
 ):
     """Excluir um produto (apenas admin)"""
     try:
-        # Buscar produto antes de deletar para obter o nome
-        product_response = supabase.table("products").select("name").eq("id", product_id).execute()
+        print(f"[DEBUG] Deletando produto ID: {product_id}")
+        print(f"[DEBUG] Usuário: {current_user['id']} (admin: {current_user.get('is_admin')})")
+        
+        # Verificar se é admin
+        if not current_user.get('is_admin'):
+            print(f"[DEBUG] Usuário não é admin")
+            raise HTTPException(status_code=403, detail="Apenas administradores podem deletar produtos")
+        
+        # Buscar produto antes de deletar para obter o nome e imagem
+        product_response = supabase.table("products").select("*").eq("id", product_id).execute()
         
         if not product_response.data:
+            print(f"[DEBUG] Produto não encontrado")
             raise HTTPException(status_code=404, detail="Produto não encontrado")
         
-        product_name = product_response.data[0]["name"]
+        product = product_response.data[0]
+        product_name = product["name"]
+        image_path = product.get("image_path")
+        
+        print(f"[DEBUG] Produto encontrado: {product_name}")
+        print(f"[DEBUG] Imagem: {image_path}")
         
         # Deletar produto do Supabase
         response = supabase.table("products").delete().eq("id", product_id).execute()
         
+        print(f"[DEBUG] Resposta da deleção: {response}")
+        
+        # Tentar deletar a imagem se existir
+        if image_path:
+            try:
+                if image_path.startswith("uploads/"):
+                    # Imagem local
+                    import os
+                    local_path = os.path.join("uploads", image_path.split("/")[-1])
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                        print(f"[DEBUG] Imagem local deletada: {local_path}")
+                else:
+                    # Imagem no Supabase Storage
+                    file_name = image_path.split("/")[-1]
+                    storage_response = supabase.storage.from_("product-images").remove([file_name])
+                    print(f"[DEBUG] Imagem do Supabase Storage deletada: {storage_response}")
+                    
+            except Exception as img_error:
+                print(f"[DEBUG] Erro ao deletar imagem: {str(img_error)}")
+                # Não falhar se não conseguir deletar a imagem
+        
         return {"message": f"Produto '{product_name}' excluído com sucesso!"}
         
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[DEBUG] Erro ao deletar produto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {str(e)}")
 
 # ===== ENDPOINTS DE CARRINHO =====
