@@ -19,6 +19,14 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # Bearer token dependency
 security = HTTPBearer()
 
+# Importações com fallback para local e Heroku
+try:
+    from .models import User
+    from .supabase_client import supabase as supabase_client
+except ImportError:
+    from models import User
+    from supabase_client import supabase as supabase_client
+
 class AuthService:
     def __init__(self):
         self.supabase = supabase

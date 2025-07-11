@@ -44,6 +44,10 @@ try:
 except ImportError:
     from supabase_client import supabase
 
+def get_supabase_client():
+    """Função helper para obter cliente Supabase (funciona local e Heroku)"""
+    return supabase
+
 # Criação da instância do FastAPI
 app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketplace de CDs de Rock")
 
@@ -124,15 +128,10 @@ def get_user_from_supabase(current_user: dict, db: Session):
         traceback.print_exc()
         raise
 
-# Função helper para importar supabase
+# Função helper para importar supabase (compatível com local e Heroku)
 def get_supabase():
     """Importa o cliente supabase (compatível com local e Heroku)"""
-    try:
-        from .supabase_client import supabase
-        return supabase
-    except ImportError:
-        from supabase_client import supabase
-        return supabase
+    return supabase
 
 # Endpoints básicos da API
 @app.get("/")

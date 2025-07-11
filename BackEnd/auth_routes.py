@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from schemas_auth import UserRegister, UserLogin, UserResponse, TokenResponse, PasswordReset
-from auth_supabase import auth_service, get_current_user, get_current_admin_user
+
+# Importações com fallback para local e Heroku
+try:
+    from .schemas_auth import UserRegister, UserLogin, UserResponse, TokenResponse, PasswordReset
+    from .auth_supabase import auth_service, get_current_user, get_current_admin_user
+except ImportError:
+    from schemas_auth import UserRegister, UserLogin, UserResponse, TokenResponse, PasswordReset
+    from auth_supabase import auth_service, get_current_user, get_current_admin_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
