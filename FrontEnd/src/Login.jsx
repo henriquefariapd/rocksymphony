@@ -95,34 +95,34 @@ function Login({ setIsLoggedIn }) {
   };
 
   return (
-    <div className="login-container">
-      <div>
-        <h2>Login</h2>
+    <div className="login-page">
+      <div className="login-container">
+        <h2>Rock Symphony</h2>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@rocksymphony.com"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Senha</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Digite sua senha"
+              required
+            />
+          </div>
+          {error && <div className="error-message">{error}</div>}
+          <button type="submit">Entrar</button>
+        </form>
       </div>
-      <form onSubmit={handleLogin}>
-        <div className="inner-container">
-          <label className="align-center">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@rocksymphony.com"
-            required
-          />
-        </div>
-        <div className="inner-container">
-          <label className="align-center">Senha</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Digite sua senha"
-            required
-          />
-        </div>
-        {error && <p className="error">{error}</p>}
-        <button type="submit">Entrar</button>
-      </form>
     </div>
   );
 }

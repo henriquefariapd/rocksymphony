@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './CadastroEspaco.css';
 
 function CadastroEspaco() {
   const [nome, setNome] = useState('');
@@ -33,7 +34,7 @@ function CadastroEspaco() {
   };
 
   return (
-    <div>
+    <div className="cadastro-container">
       <h2>Cadastrar Produto</h2>
       <form onSubmit={handleSubmit}>
         <div>

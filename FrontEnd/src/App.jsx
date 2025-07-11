@@ -12,6 +12,7 @@ import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
 import { CiShoppingCart } from "react-icons/ci";
 import { IoIosCloseCircleOutline } from "react-icons/io";
+import './App.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -136,47 +137,63 @@ function App() {
       <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} />
 
       {isLoggedIn && (
-        <div className={`sidebar ${sidebarAberto ? 'aberto' : ''}`}>
-          <button onClick={toggleSidebar} className="fechar-sidebar">
-            <IoIosCloseCircleOutline />
-          </button>
-          <h2 className="sidebar-title">Seu Carrinho</h2>
-          {cartItems.length > 0 ? (
-            <>
-              <ul>
-                {cartItems.map((item) => (
-                  <li key={item.id} className="cart-item">
-                    <div className="cart-item-details">
-                      <span>{item.name}</span>
-                      <span>{item.quantity} x {item.valor} R$</span> {/* Exibe a quantidade e o valor */}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="cart-summary">
-                <p>
-                  <strong>Total:</strong> R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <button
-                  className="btn-continuar-pagamento"
-                  onClick={() => handleCheckout()}
-                >
-                  Efetuar Pedido
-                </button>
-              </div>
-            </>
-          ) : (
-            <p>Seu carrinho está vazio.</p>
-          )}
+        <>
+          {/* Botão flutuante para abrir o carrinho */}
           <button
             onClick={toggleSidebar}
-            className={`abrir-sidebar ${sidebarAberto ? 'sidebar-aberta' : ''}`}
+            className={`btn-carrinho-flutuante ${sidebarAberto ? 'hidden' : ''}`}
           >
             <CiShoppingCart />
+            {cartItems.length > 0 && (
+              <span className="badge-carrinho">{cartItems.length}</span>
+            )}
           </button>
-        </div>
+
+          {/* Overlay para fechar sidebar ao clicar fora */}
+          {sidebarAberto && (
+            <div 
+              className="sidebar-overlay" 
+              onClick={toggleSidebar}
+            ></div>
+          )}
+
+          {/* Sidebar do carrinho */}
+          <div className={`sidebar ${sidebarAberto ? 'aberto' : ''}`}>
+            <button onClick={toggleSidebar} className="fechar-sidebar">
+              <IoIosCloseCircleOutline />
+            </button>
+            <h2 className="sidebar-title">Seu Carrinho</h2>
+            {cartItems.length > 0 ? (
+              <>
+                <ul>
+                  {cartItems.map((item) => (
+                    <li key={item.id} className="cart-item">
+                      <div className="cart-item-details">
+                        <span>{item.name}</span>
+                        <span>{item.quantity} x {item.valor} R$</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="cart-summary">
+                  <p>
+                    <strong>Total:</strong> R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <button
+                    className="btn-continuar-pagamento"
+                    onClick={() => handleCheckout()}
+                  >
+                    Efetuar Pedido
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p>Seu carrinho está vazio.</p>
+            )}
+          </div>
+        </>
       )}
 
 

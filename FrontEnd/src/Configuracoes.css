@@ -1,48 +1,321 @@
-h2 {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: #333;
-    text-align: center;
-  }
-  
+/* Configuracoes.css - Estilos para a página de configurações */
+
+/* Container principal */
+.configuracoes-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+}
+
+/* Título da página */
+.configuracoes-container h2 {
+  font-size: var(--font-size-xxxl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-xl);
+  color: var(--primary-color);
+  text-align: center;
+  position: relative;
+}
+
+.configuracoes-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  border-radius: 2px;
+}
+
+/* Formulário de configurações */
+.configuracoes-form {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-light) 100%);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.configuracoes-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+}
+
+/* Grupos de configuração */
+.config-group {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--bg-primary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.config-group h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.config-group label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.config-group input,
+.config-group select,
+.config-group textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-normal);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  font-family: var(--font-family);
+}
+
+.config-group input:focus,
+.config-group select:focus,
+.config-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(165, 28, 48, 0.1);
+  transform: translateY(-1px);
+}
+
+.config-group input:hover,
+.config-group select:hover,
+.config-group textarea:hover {
+  border-color: var(--primary-light);
+}
+
+/* Botão de salvar */
+.btn-save {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: var(--text-light);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: var(--spacing-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-save::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--transition-normal);
+}
+
+.btn-save:hover::before {
+  left: 100%;
+}
+
+.btn-save:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
+}
+
+.btn-save:active {
+  transform: translateY(0);
+}
+
+/* Mensagens de sucesso */
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  animation: slideInDown 0.3s ease-out;
+}
+
+.success-message svg {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+/* Mensagens de erro */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  animation: slideInDown 0.3s ease-out;
+}
+
+.error-message svg {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+/* Toggle switches */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: var(--transition-normal);
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: var(--transition-normal);
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
   .configuracoes-container {
-    max-width: 600px;
-    padding: 20px;
+    padding: var(--spacing-md);
   }
   
-  .success-message {
-    background-color: #d4edda;
-    color: #155724;
-    padding: 10px;
-    margin-top: 20px;
-    border: 1px solid #c3e6cb;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 16px;
+  .configuracoes-form {
+    padding: var(--spacing-lg);
   }
   
-  .success-message svg {
-    font-size: 18px;
+  .config-group {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .configuracoes-container h2 {
+    font-size: var(--font-size-xxl);
+  }
+  
+  .config-group h3 {
+    font-size: var(--font-size-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .configuracoes-container h2 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .config-group input,
+  .config-group select,
+  .config-group textarea {
+    padding: var(--spacing-sm);
   }
   
   .btn-save {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 20px;
-    display: block;
-    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
-  
-  .btn-save:hover {
-    background-color: #45a049;
+}
+
+/* Animações */
+.configuracoes-form {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de loading */
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-save:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
   

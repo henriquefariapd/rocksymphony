@@ -4,6 +4,7 @@ import { FaEdit, FaTrashAlt } from 'react-icons/fa'; // Importando os ícones
 import { FaCartPlus } from "react-icons/fa";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import './Home.css';
 
 
 function Home() {
