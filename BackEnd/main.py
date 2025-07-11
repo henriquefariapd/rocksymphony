@@ -63,8 +63,11 @@ mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f41
 
 # Configuração de arquivos estáticos
 app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Configuração para uploads (local e Heroku)
+uploads_dir = Path(os.getcwd()) / "BackEnd" / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Configuração para servir o frontend React (se existir)
 frontend_dist_path = Path(os.getcwd()) / "FrontEnd" / "dist"
@@ -256,13 +259,17 @@ async def create_new_product(
                     
                     file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
                     file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
-                    file_path = os.path.join("uploads", file_name)
+                    
+                    # Usar caminho absoluto para uploads
+                    uploads_dir = Path(os.getcwd()) / "BackEnd" / "uploads"
+                    file_path = uploads_dir / file_name
                     
                     with open(file_path, "wb") as buffer:
                         buffer.write(file_content)
                     
                     image_path = f"uploads/{file_name}"
                     print(f"[DEBUG] Imagem salva localmente: {image_path}")
+                    print(f"[DEBUG] Caminho completo: {file_path}")
                     
                 except Exception as local_error:
                     print(f"[DEBUG] Erro ao salvar localmente: {str(local_error)}")
