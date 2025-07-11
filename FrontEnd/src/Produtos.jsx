@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
-import './Espacos.css';
+import './Produtos.css';
 
-function Espacos() {
-  const [espacos, setEspacos] = useState([]);
+function Produtos() {
+  const [produtos, setProdutos] = useState([]);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [artist, setArtist] = useState('');
@@ -12,16 +12,16 @@ function Espacos() {
   const [valor, setValor] = useState('');
   const [remaining, setRemaining] = useState('');
   const [imagem, setImagem] = useState(null);
-  const [editingEspaco, setEditingEspaco] = useState(null);
+  const [editingProduto, setEditingProduto] = useState(null);
 
   const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
     : 'https://rock-symphony-91f7e39d835d.herokuapp.com';
 
-  const fetchEspacos = async () => {
+  const fetchProdutos = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      console.log("=== DEBUG FETCH ESPACOS ===");
+      console.log("=== DEBUG FETCH PRODUTOS ===");
       console.log("Token:", token);
       console.log("API URL:", `${apiUrl}/api/products`);
       
@@ -47,21 +47,23 @@ function Espacos() {
       
       const data = await response.json();
       console.log("Data received:", data);
-      setEspacos(data);
+      setProdutos(data);
     } catch (error) {
-      console.error('Erro completo ao buscar espaços:', error);
-      toast.error('Erro ao carregar os espaços');
+      console.error('Erro completo ao buscar produtos:', error);
+      toast.error('Erro ao carregar os produtos');
     }
   };
 
   useEffect(() => {
-    fetchEspacos();
+    fetchProdutos();
   }, []);
 
   const handleCadastroClick = () => {
     setShowCadastro(!showCadastro);
-    setEditingEspaco(null);
+    setEditingProduto(null);
     setNome('');
+    setArtist('');
+    setDescription('');
     setValor('');
     setRemaining('');
     setImagem(null);
@@ -79,7 +81,7 @@ function Espacos() {
     console.log("Valor:", valor);
     console.log("Remaining:", remaining);
     console.log("Imagem:", imagem);
-    console.log("EditingEspaco:", editingEspaco);
+    console.log("EditingProduto:", editingProduto);
     
     if (!token) {
       toast.error("Usuário não autenticado. Por favor, faça login.");
@@ -103,11 +105,11 @@ function Espacos() {
     }
 
     try {
-      const url = editingEspaco
-        ? `${apiUrl}/api/products/${editingEspaco.id}`
+      const url = editingProduto
+        ? `${apiUrl}/api/products/${editingProduto.id}`
         : `${apiUrl}/api/products`;
 
-      const method = editingEspaco ? 'PUT' : 'POST';
+      const method = editingProduto ? 'PUT' : 'POST';
 
       console.log("URL:", url);
       console.log("Method:", method);
@@ -127,7 +129,7 @@ function Espacos() {
       console.log("Response data:", responseData);
 
       if (response.ok) {
-        toast.success(editingEspaco ? 'Espaço atualizado!' : 'Espaço cadastrado!');
+        toast.success(editingProduto ? 'Produto atualizado!' : 'Produto cadastrado!');
         setNome('');
         setArtist('');
         setDescription('');
@@ -135,29 +137,29 @@ function Espacos() {
         setRemaining('');
         setImagem(null);
         setShowCadastro(false);
-        setEditingEspaco(null);
-        fetchEspacos();
+        setEditingProduto(null);
+        fetchProdutos();
       } else {
         toast.error(`Erro: ${responseData.detail || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Erro completo:', error);
-      toast.error('Erro ao salvar o espaço');
+      toast.error('Erro ao salvar o produto');
     }
   };
 
-  const handleEdit = (espaco) => {
-    setEditingEspaco(espaco);
-    setNome(espaco.name);
-    setArtist(espaco.artist);
-    setDescription(espaco.description);
-    setValor(espaco.valor);
-    setRemaining(espaco.remaining);
+  const handleEdit = (produto) => {
+    setEditingProduto(produto);
+    setNome(produto.name);
+    setArtist(produto.artist);
+    setDescription(produto.description);
+    setValor(produto.valor);
+    setRemaining(produto.remaining);
     setImagem(null); // não carregamos imagem existente ainda
     setShowCadastro(true);
   };
 
-  const handleDelete = async (espacoId) => {
+  const handleDelete = async (produtoId) => {
     const confirmDelete = window.confirm('Tem certeza que deseja excluir este produto?');
     if (confirmDelete) {
       try {
@@ -165,15 +167,15 @@ function Espacos() {
         
         console.log("=== DEBUG DELETE ===");
         console.log("Token:", token);
-        console.log("Produto ID:", espacoId);
-        console.log("URL:", `${apiUrl}/api/products/${espacoId}`);
+        console.log("Produto ID:", produtoId);
+        console.log("URL:", `${apiUrl}/api/products/${produtoId}`);
         
         if (!token) {
           toast.error("Usuário não autenticado. Por favor, faça login.");
           return;
         }
         
-        const response = await fetch(`${apiUrl}/api/products/${espacoId}`, {
+        const response = await fetch(`${apiUrl}/api/products/${produtoId}`, {
           method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -187,7 +189,7 @@ function Espacos() {
           const responseData = await response.json();
           console.log("Response data:", responseData);
           toast.success('Produto excluído com sucesso!');
-          fetchEspacos();
+          fetchProdutos();
         } else {
           const errorData = await response.json();
           console.log("Error data:", errorData);
@@ -202,34 +204,34 @@ function Espacos() {
 
   return (
     <div>
-      <h2>Produtos Disponíveis</h2>
+      <h2>Gerenciar Produtos</h2>
       
-      {espacos.length === 0 ? (
-        <p>Não há espaços cadastrados no momento.</p>
+      {produtos.length === 0 ? (
+        <p>Não há produtos cadastrados no momento.</p>
       ) : (
         <table className="reserv-table m-bottom-20">
         <thead>
           <tr>
             <th>Artista</th>
-            <th>Item</th>
+            <th>Álbum/CD</th>
             <th>Valor</th>
             <th>Estoque</th>
-            <th>Imagem</th> {/* <- nova coluna */}
+            <th>Imagem</th>
             <th>Ações</th>
           </tr>
         </thead>
           <tbody>
-            {espacos.map((espaco) => (
-              <tr key={espaco.id}>
-                <td>{espaco.artist}</td>
-                <td>{espaco.name}</td>
-                <td>R$ {espaco.valor}</td>
-                <td>{espaco.remaining}</td>
+            {produtos.map((produto) => (
+              <tr key={produto.id}>
+                <td>{produto.artist}</td>
+                <td>{produto.name}</td>
+                <td>R$ {produto.valor}</td>
+                <td>{produto.remaining}</td>
                 <td>
-                  {espaco.image_path ? (
+                  {produto.image_path ? (
                     <img
-                      src={`${apiUrl}/${espaco.image_path}`}
-                      alt={espaco.name}
+                      src={`${apiUrl}/${produto.image_path}`}
+                      alt={produto.name}
                       style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
                     />
                   ) : (
@@ -237,10 +239,10 @@ function Espacos() {
                   )}
                 </td>
                 <td>
-                  <button className="btn-edit" onClick={() => handleEdit(espaco)}>
+                  <button className="btn-edit" onClick={() => handleEdit(produto)}>
                     <FaEdit />
                   </button>
-                  <button className="btn-delete" onClick={() => handleDelete(espaco.id)}>
+                  <button className="btn-delete" onClick={() => handleDelete(produto.id)}>
                     <FaTrashAlt />
                   </button>
                 </td>
@@ -251,24 +253,25 @@ function Espacos() {
       )}
 
       <button className="btn-cadastro" onClick={handleCadastroClick}>
-        {showCadastro ? 'Cancelar' : 'Cadastrar'}
+        {showCadastro ? 'Cancelar' : 'Cadastrar Produto'}
       </button>
 
       {showCadastro && (
         <form onSubmit={handleSubmit} className="form-cadastro">
           <div className="form-group">
-            <label htmlFor="name">Nome do Artista:</label>
+            <label htmlFor="artist">Nome do Artista:</label>
             <input
               className="form-control"
               type="text"
-              id="name"
+              id="artist"
               value={artist}
               onChange={(e) => setArtist(e.target.value)}
               required
+              placeholder="Ex: Guns N' Roses"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="name">Nome do Item:</label>
+            <label htmlFor="name">Nome do Álbum/CD:</label>
             <input
               className="form-control"
               type="text"
@@ -276,22 +279,24 @@ function Espacos() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               required
+              placeholder="Ex: Appetite for Destruction"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="name">Descrição:</label>
-            <input
+            <label htmlFor="description">Descrição:</label>
+            <textarea
               className="form-control"
-              type="text"
-              id="name"
+              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
+              placeholder="Ex: Álbum de estreia da banda, lançado em 1987..."
+              rows="3"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="valor">Valor:</label>
+            <label htmlFor="valor">Valor (R$):</label>
             <input
               className="form-control"
               type="number"
@@ -299,11 +304,14 @@ function Espacos() {
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               required
+              step="0.01"
+              min="0"
+              placeholder="Ex: 29.99"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="remaining">Estoque:</label>
+            <label htmlFor="remaining">Quantidade em Estoque:</label>
             <input
               className="form-control"
               type="number"
@@ -311,11 +319,13 @@ function Espacos() {
               value={remaining}
               onChange={(e) => setRemaining(e.target.value)}
               required
+              min="0"
+              placeholder="Ex: 50"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="imagem">Imagem do Produto:</label>
+            <label htmlFor="imagem">Imagem da Capa do CD:</label>
             <input
               className="form-control"
               type="file"
@@ -333,7 +343,7 @@ function Espacos() {
           )}
 
           <button type="submit" className="btn-submit">
-            {editingEspaco ? 'Atualizar Produto' : 'Cadastrar Produto'}
+            {editingProduto ? 'Atualizar Produto' : 'Cadastrar Produto'}
           </button>
         </form>
       )}
@@ -341,4 +351,4 @@ function Espacos() {
   );
 }
 
-export default Espacos;
+export default Produtos;

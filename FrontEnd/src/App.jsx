@@ -4,7 +4,7 @@ import Login from './Login';
 import Home from './Home';
 import axios from 'axios';
 import Header from './Header';
-import Espacos from './Espacos';
+import Produtos from './Produtos';
 import MinhasReservas from './MinhasReservas';
 import Reservas from './Reservas';
 import Configuracoes from './Configuracoes';
@@ -183,7 +183,7 @@ function App() {
       <Routes>
         <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
-        <Route path="/espacos" element={<Espacos />} />
+        <Route path="/produtos" element={<Produtos />} />
         <Route path="/minhas-reservas" element={<MinhasReservas />} />
         <Route path="/pedidos" element={<Reservas />} />
         <Route path="/configuracoes" element={<Configuracoes />} />

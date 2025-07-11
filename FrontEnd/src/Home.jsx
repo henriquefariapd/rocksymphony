@@ -23,7 +23,7 @@ function Home() {
     ? 'http://127.0.0.1:8000'
     : 'https://rock-symphony-91f7e39d835d.herokuapp.com';
 
-  const fetchEspacos = async () => {
+  const fetchProdutos = async () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
@@ -63,7 +63,7 @@ function Home() {
   };
 
   useEffect(() => {
-    fetchEspacos();
+    fetchProdutos();
   }, []);
 
   const handleCadastroClick = () => {
@@ -113,7 +113,7 @@ function Home() {
       setMinDays('');
       setShowCadastro(false);
       setEditingEspaco(null);
-      fetchEspacos();
+      fetchProdutos();
     } catch (error) {
       toast.error('Erro ao salvar o espaço');
       console.error('Erro ao salvar o espaço:', error);
@@ -221,7 +221,7 @@ function Home() {
           method: 'DELETE',
         });
         toast.success('Espaço excluído com sucesso!');
-        fetchEspacos();
+        fetchProdutos();
       } catch (error) {
         toast.error('Erro ao excluir o espaço');
         console.error('Erro ao excluir o espaço:', error);
@@ -237,31 +237,31 @@ function Home() {
         <p>Não há CDs cadastrados no momento.</p>
       ) : (
         <div className="produtos-grid">
-          {produtos.map((espaco) => (
-            <div key={espaco.id} className="produto-card">
+          {produtos.map((produto) => (
+            <div key={produto.id} className="produto-card">
               <img
-                src={`${apiUrl}/${espaco.image_path}`}
-                alt={espaco.name}
+                src={`${apiUrl}/${produto.image_path}`}
+                alt={produto.name}
                 className="produto-imagem"
               />
               <div className="produto-info">
-                <h3>{espaco.name} - {espaco.artist}</h3>
+                <h3>{produto.name} - {produto.artist}</h3>
                 {/* Accordion de descrição */}
                 <div className="accordion-container">
-                  <p className="produto-value">R$ {espaco.valor}</p>
+                  <p className="produto-value">R$ {produto.valor}</p>
                   <button 
                     className="accordion-toggle"
-                    onClick={() => handleToggleDescription(espaco.id)}
+                    onClick={() => handleToggleDescription(produto.id)}
                   >
-                    {expandedProduct === espaco.id ? (
+                    {expandedProduct === produto.id ? (
                       <FaAngleUp />  // Ícone de seta para cima quando expandido
                     ) : (
                       <FaAngleDown />  // Ícone de seta para baixo quando recolhido
                     )}
-                    {expandedProduct === espaco.id ? " Fechar" : " Ver descrição"}
+                    {expandedProduct === produto.id ? " Fechar" : " Ver descrição"}
                   </button>
-                  {expandedProduct === espaco.id && (
-                    <p className="produto-description">{espaco.description}</p>
+                  {expandedProduct === produto.id && (
+                    <p className="produto-description">{produto.description}</p>
                   )}
                 </div>
               </div>
@@ -269,7 +269,7 @@ function Home() {
                 <button className="btn-comprar">
                   <BiPurchaseTagAlt /> Comprar
                 </button>
-                <button className="btn-comprar" onClick={() => handleAddtoCart(espaco.id)}>
+                <button className="btn-comprar" onClick={() => handleAddtoCart(produto.id)}>
                   <FaCartPlus /> Adicionar ao carrinho
                 </button>
               </div>

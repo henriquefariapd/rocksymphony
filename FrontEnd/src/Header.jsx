@@ -31,7 +31,7 @@ function Header({ isLoggedIn, isAdmin, onLogout }) {
           {/* Mostrar botão de cadastro de espaços somente se for admin */}
           {isAdmin && (
             <>
-              <Link to="/espacos" className="space-button">
+              <Link to="/produtos" className="space-button">
                 <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
               </Link>
               <Link to="/pedidos" className="space-button">
