@@ -1268,6 +1268,281 @@ async def debug_test_user_email(
         traceback.print_exc()
         return {"error": str(e), "traceback": traceback.format_exc()}
 
+# ===== ENDPOINTS DE PEDIDOS SUPABASE =====
+
+@app.post("/api/create_order")
+async def create_order_supabase(
+    current_user: dict = Depends(get_current_user)
+):
+    """Criar pedido a partir do carrinho do usuário no Supabase"""
+    try:
+        user_id = current_user["id"]
+        print(f"[DEBUG] Criando pedido para usuário: {user_id}")
+        
+        # Primeiro, buscar o carrinho do usuário
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        
+        if not cart_response.data:
+            raise HTTPException(status_code=400, detail="Carrinho não encontrado")
+        
+        cart_id = cart_response.data[0]["id"]
+        print(f"[DEBUG] Carrinho encontrado: {cart_id}")
+        
+        # Agora buscar produtos no carrinho usando o cart_id
+        cart_products_response = supabase.table("shoppingcart_products").select("*, products(*)").eq("shoppingcart_id", cart_id).execute()
+        
+        if not cart_products_response.data:
+            raise HTTPException(status_code=400, detail="Carrinho está vazio")
+        
+        cart_products = cart_products_response.data
+        print(f"[DEBUG] Produtos no carrinho: {len(cart_products)}")
+        
+        # Calcular total
+        total_amount = sum(item["products"]["valor"] * item["quantity"] for item in cart_products)
+        print(f"[DEBUG] Total do pedido: R$ {total_amount}")
+        
+        # Criar pedido
+        order_data = {
+            "user_id": user_id,
+            "order_date": date.today().isoformat(),
+            "payment_link": None,
+            "pending": True,
+            "active": True,
+            "total_amount": total_amount
+        }
+        
+        order_response = supabase.table("orders").insert(order_data).execute()
+        
+        if not order_response.data:
+            raise HTTPException(status_code=500, detail="Erro ao criar pedido")
+        
+        order_id = order_response.data[0]["id"]
+        print(f"[DEBUG] Pedido criado com ID: {order_id}")
+        
+        # Criar order_products
+        order_products_data = []
+        for cart_item in cart_products:
+            product_price = cart_item["products"]["valor"]
+            print(f"[DEBUG] Produto {cart_item['product_id']}: preço={product_price}")
+            order_products_data.append({
+                "order_id": order_id,
+                "product_id": cart_item["product_id"],
+                "quantity": cart_item["quantity"],
+                "price_at_time": product_price  # Adicionar preço no momento da compra
+            })
+        
+        print(f"[DEBUG] Dados dos produtos do pedido: {order_products_data}")
+        
+        # Inserir order_products
+        order_products_response = supabase.table("order_products").insert(order_products_data).execute()
+        
+        if not order_products_response.data:
+            raise HTTPException(status_code=500, detail="Erro ao criar produtos do pedido")
+        
+        # Criar link de pagamento no MercadoPago
+        payment_link = None
+        try:
+            # Preparar itens para o MercadoPago
+            items = []
+            for cart_item in cart_products:
+                product = cart_item["products"]
+                items.append({
+                    "title": f"{product['name']} - {product['artist']}",
+                    "quantity": cart_item["quantity"],
+                    "currency_id": "BRL",
+                    "unit_price": float(product["valor"])
+                })
+            
+            # Dados do pagamento
+            payment_data = {
+                "items": items,
+                "payer": {
+                    "email": current_user.get("email", "usuario@email.com")
+                },
+                "external_reference": str(order_id),
+                "back_url": {
+                    "success": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
+                    "failure": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
+                    "pending": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos"
+                }
+            }
+            
+            # Criar preferência no MercadoPago
+            result = mp.preference().create(payment_data)
+            
+            if "init_point" in result["response"]:
+                payment_link = result["response"]["init_point"]
+                print(f"[DEBUG] Link de pagamento criado: {payment_link}")
+                
+                # Atualizar pedido com o link de pagamento
+                supabase.table("orders").update({
+                    "payment_link": payment_link
+                }).eq("id", order_id).execute()
+            else:
+                print(f"[DEBUG] Erro ao criar link de pagamento: {result}")
+                
+        except Exception as payment_error:
+            print(f"[DEBUG] Erro ao criar pagamento MercadoPago: {str(payment_error)}")
+            # Não falha o pedido se o pagamento não funcionar
+        
+        # Limpar carrinho - deletar produtos do carrinho usando cart_id
+        delete_response = supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).execute()
+        print(f"[DEBUG] Carrinho limpo")
+        
+        return {
+            "message": "Pedido criado com sucesso!",
+            "order_id": order_id,
+            "total_amount": total_amount,
+            "payment_link": payment_link
+        }
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao criar pedido: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar pedido: {str(e)}")
+
+@app.get("/api/my_orders")
+async def get_my_orders(
+    current_user: dict = Depends(get_current_user)
+):
+    """Obter pedidos do usuário logado"""
+    try:
+        user_id = current_user["id"]
+        print(f"[DEBUG] Buscando pedidos para usuário: {user_id}")
+        
+        # Buscar pedidos do usuário
+        orders_response = supabase.table("orders").select("*").eq("user_id", user_id).order("order_date", desc=True).execute()
+        
+        if not orders_response.data:
+            return []
+        
+        orders = orders_response.data
+        print(f"[DEBUG] Pedidos encontrados: {len(orders)}")
+        
+        # Para cada pedido, buscar os produtos
+        result = []
+        for order in orders:
+            order_products_response = supabase.table("order_products").select("*, products(*)").eq("order_id", order["id"]).execute()
+            
+            products = []
+            if order_products_response.data:
+                for op in order_products_response.data:
+                    products.append({
+                        "id": op["products"]["id"],
+                        "name": op["products"]["name"],
+                        "artist": op["products"]["artist"],
+                        "valor": op["products"]["valor"],
+                        "quantity": op["quantity"],
+                        "image_path": op["products"]["image_path"]
+                    })
+            
+            result.append({
+                "id": order["id"],
+                "order_date": order["order_date"],
+                "total_amount": order["total_amount"],
+                "pending": order["pending"],
+                "active": order["active"],
+                "payment_link": order["payment_link"],
+                "products": products
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar pedidos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {str(e)}")
+
+@app.get("/api/admin/all_orders")
+async def get_all_orders_admin(
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Obter todos os pedidos (apenas admin)"""
+    try:
+        print(f"[DEBUG] Admin buscando todos os pedidos")
+        
+        # Buscar todos os pedidos
+        orders_response = supabase.table("orders").select("*, users(email)").order("order_date", desc=True).execute()
+        
+        if not orders_response.data:
+            return []
+        
+        orders = orders_response.data
+        print(f"[DEBUG] Total de pedidos encontrados: {len(orders)}")
+        
+        # Para cada pedido, buscar os produtos
+        result = []
+        for order in orders:
+            order_products_response = supabase.table("order_products").select("*, products(*)").eq("order_id", order["id"]).execute()
+            
+            products = []
+            if order_products_response.data:
+                for op in order_products_response.data:
+                    products.append({
+                        "id": op["products"]["id"],
+                        "name": op["products"]["name"],
+                        "artist": op["products"]["artist"],
+                        "valor": op["products"]["valor"],
+                        "quantity": op["quantity"],
+                        "image_path": op["products"]["image_path"]
+                    })
+            
+            result.append({
+                "id": order["id"],
+                "order_date": order["order_date"],
+                "user_email": order["users"]["email"] if order["users"] else "N/A",
+                "total_amount": order["total_amount"],
+                "pending": order["pending"],
+                "active": order["active"],
+                "payment_link": order["payment_link"],
+                "products": products
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
+
+# ===== WEBHOOK MERCADOPAGO =====
+
+@app.post("/api/webhook/mercadopago")
+async def mercadopago_webhook(request: Request):
+    """Webhook para notificações do MercadoPago"""
+    try:
+        body = await request.body()
+        print(f"[DEBUG] Webhook MercadoPago recebido: {body}")
+        
+        # Parsear dados do webhook
+        data = await request.json()
+        
+        if data.get("type") == "payment":
+            payment_id = data.get("data", {}).get("id")
+            
+            if payment_id:
+                # Buscar detalhes do pagamento
+                payment_info = mp.payment().get(payment_id)
+                
+                if payment_info["status"] == 200:
+                    payment_data = payment_info["response"]
+                    external_reference = payment_data.get("external_reference")
+                    status = payment_data.get("status")
+                    
+                    print(f"[DEBUG] Pagamento {payment_id} - Status: {status} - Pedido: {external_reference}")
+                    
+                    if external_reference and status == "approved":
+                        # Atualizar pedido como pago
+                        supabase.table("orders").update({
+                            "pending": False,
+                            "active": True
+                        }).eq("id", external_reference).execute()
+                        
+                        print(f"[DEBUG] Pedido {external_reference} marcado como pago")
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro no webhook: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
 # ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
 # Rota para servir o frontend React
 @app.get("/")
@@ -1281,6 +1556,8 @@ def serve_frontend(full_path: str = None):
     else:
         # Fallback para desenvolvimento - retorna informações da API
         return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
+
+# ===== FINAL DO ARQUIVO =====
 
 if __name__ == "__main__":
     import uvicorn

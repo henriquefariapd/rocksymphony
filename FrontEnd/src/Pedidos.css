@@ -1,0 +1,169 @@
+/* Mesmos estilos do MeusPedidos.css mas para Pedidos.jsx */
+.pedidos-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.order-info h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.order-info p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.toggle-button {
+  background: #8B1538;
+  border: 2px solid #8B1538;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: white !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.toggle-button svg {
+  color: white !important;
+  font-size: 14px;
+}
+
+.toggle-button:hover {
+  background: #A61B47;
+  border-color: #A61B47;
+  transform: scale(1.05);
+}
+
+.toggle-button:active {
+  transform: scale(0.95);
+  background: #6B0F29;
+}
+
+.order-details {
+  padding: 20px;
+  background-color: #fff;
+}
+
+.order-details h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.product-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background-color: #fafafa;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h5 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.product-info p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .product-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .product-image {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .order-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .toggle-button {
+    align-self: center;
+  }
+}

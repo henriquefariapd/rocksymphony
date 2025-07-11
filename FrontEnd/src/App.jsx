@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import Login from './Login';
 import Home from './Home';
 import ResetPassword from './ResetPassword';
 import axios from 'axios';
 import Header from './Header';
 import Produtos from './Produtos';
-import MinhasReservas from './MinhasReservas';
-import Reservas from './Reservas';
+import MeusPedidos from './MeusPedidos';
+import Pedidos from './Pedidos';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
@@ -79,7 +80,7 @@ function App() {
       console.error("Erro ao recuperar produtos do carrinho:", err);
     }
   };
-  const handleCheckout = async (productId) => {
+  const handleCheckout = async () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token || token == 'undefined') {
@@ -87,35 +88,34 @@ function App() {
         return;
       }
 
-      const response = await fetch(`${apiUrl}/api/handle_checkout`, {
+      const response = await fetch(`${apiUrl}/api/create_order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          productId
-        }),
       });
   
       const data = await response.json();
-      window.location.reload();
       console.log("Resposta do backend:", data);
   
       if (!response.ok) {
-        throw new Error(data.detail || "Falha ao reservar o espaço");
+        throw new Error(data.detail || "Falha ao criar pedido");
       }
   
-      // setIsModalOpen(false);
-      fetchSchedulesAndSpaces();
-  
-      toast(`${spaceName} foi reservado com sucesso!`, {
+      // Atualizar carrinho após criar pedido
+      fetchCartItems();
+      
+      // Fechar sidebar
+      setSidebarAberto(false);
+      
+      toast.success(`Pedido criado com sucesso! Total: R$ ${data.total_amount}`, {
         position: "top-right",
         autoClose: 3000,
       });
     } catch (error) {
-      console.error("Erro ao reservar:", error);
-      toast.error("Erro ao reservar o espaço. Tente novamente.", {
+      console.error("Erro ao criar pedido:", error);
+      toast.error("Erro ao criar pedido. Tente novamente.", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -278,8 +278,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/produtos" element={<Produtos />} />
-        <Route path="/minhas-reservas" element={isLoggedIn ? <MinhasReservas /> : <Navigate to="/login" />} />
-        <Route path="/pedidos" element={isLoggedIn ? <Reservas /> : <Navigate to="/login" />} />
+        <Route path="/minhas-reservas" element={isLoggedIn ? <MeusPedidos /> : <Navigate to="/login" />} />
+        <Route path="/pedidos" element={isLoggedIn ? <Pedidos /> : <Navigate to="/login" />} />
         <Route path="/configuracoes" element={isLoggedIn ? <Configuracoes /> : <Navigate to="/login" />} />
         <Route path="/importar-usuarios" element={isLoggedIn ? <ImportarUsuarios /> : <Navigate to="/login" />} />
         <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
