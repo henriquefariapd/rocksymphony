@@ -68,20 +68,47 @@ def get_db_session():
 # Função para converter o usuário do Supabase para o formato esperado pelo sistema
 def get_user_from_supabase(current_user: dict, db: Session):
     """Converte o usuário do Supabase para o formato esperado pelos endpoints"""
-    user = db.query(User).filter(User.id == current_user["id"]).first()
-    
-    if not user:
-        # Se não encontrar, criar um novo usuário com os dados do Supabase
-        user = User(
-            id=current_user["id"],
-            usuario=current_user.get("usuario", ""),
-            is_admin=current_user.get("is_admin", False)
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    
-    return user
+    try:
+        print(f"=== DEBUG GET_USER_FROM_SUPABASE ===")
+        print(f"Buscando usuário com ID: {current_user['id']}")
+        print(f"Tipo do ID: {type(current_user['id'])}")
+        
+        # Tentar query simples primeiro
+        print("Executando query...")
+        user = db.query(User).filter(User.id == current_user["id"]).first()
+        print(f"Query executada. Usuário encontrado: {user}")
+        
+        if not user:
+            print("Usuário não encontrado, criando novo...")
+            # Se não encontrar, criar um novo usuário com os dados do Supabase
+            user_data = {
+                "id": current_user["id"],
+                "usuario": current_user.get("usuario", ""),
+                "is_admin": current_user.get("is_admin", False)
+            }
+            print(f"Dados para criar usuário: {user_data}")
+            
+            user = User(**user_data)
+            print("Objeto User criado")
+            
+            db.add(user)
+            print("User adicionado à sessão")
+            
+            db.commit()
+            print("Commit realizado")
+            
+            db.refresh(user)
+            print(f"Usuário criado e refreshed: {user}")
+        
+        print(f"Retornando usuário: {user.id}")
+        return user
+        
+    except Exception as e:
+        print(f"ERRO em get_user_from_supabase: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 # Endpoints básicos da API
 @app.get("/")
@@ -336,72 +363,136 @@ class AddProductToCartRequest(BaseModel):
 @app.post("/api/add_product_to_cart")
 def add_product_to_cart(
     newProduct: AddProductToCartRequest, 
-    db: Session = Depends(get_db_session), 
     current_user: dict = Depends(get_current_user)
 ):
     """Adicionar produto ao carrinho"""
-    user = get_user_from_supabase(current_user, db)
-    
-    # Encontrar ou criar carrinho do usuário
-    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == user.id).first()
-    
-    if not shopping_cart:
-        shopping_cart = ShoppingCart(user_id=user.id)
-        db.add(shopping_cart)
-        db.commit()
-        db.refresh(shopping_cart)
-    
-    # Verificar se o produto já está no carrinho
-    cart_product = db.query(ShoppingCartProduct).filter(
-        ShoppingCartProduct.shoppingcart_id == shopping_cart.id,
-        ShoppingCartProduct.product_id == newProduct.productId
-    ).first()
-    
-    if cart_product:
-        # Atualizar quantidade
-        cart_product.quantity += newProduct.quantity
-    else:
-        # Adicionar novo produto
-        cart_product = ShoppingCartProduct(
-            shoppingcart_id=shopping_cart.id,
-            product_id=newProduct.productId,
-            quantity=newProduct.quantity
-        )
-        db.add(cart_product)
-    
-    db.commit()
-    db.refresh(cart_product)
-    return {"message": "Produto adicionado ao carrinho", "cart_product": cart_product}
+    try:
+        print('=== DEBUG ADD_PRODUCT_TO_CART ===')
+        print(f'Dados recebidos: productId={newProduct.productId}, quantity={newProduct.quantity}')
+        print(f'Usuário atual: {current_user}')
+
+        # Usar cliente Supabase diretamente para evitar problemas de RLS
+        from supabase_client import supabase
+        
+        user_id = current_user["id"]
+        print(f'User ID: {user_id}')
+        
+        # Buscar ou criar carrinho do usuário
+        print('Buscando carrinho do usuário...')
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        print(f'Resposta do carrinho: {cart_response.data}')
+        
+        if not cart_response.data:
+            print('Criando novo carrinho...')
+            cart_data = {
+                "user_id": user_id
+            }
+            cart_response = supabase.table("shoppingcarts").insert(cart_data).execute()
+            print(f'Carrinho criado: {cart_response.data}')
+            cart_id = cart_response.data[0]["id"]
+        else:
+            cart_id = cart_response.data[0]["id"]
+            print(f'Carrinho encontrado: {cart_id}')
+        
+        # Verificar se o produto já está no carrinho
+        print('Verificando se produto já está no carrinho...')
+        existing_product = supabase.table("shoppingcart_products").select("*").eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
+        print(f'Produto existente: {existing_product.data}')
+        
+        if existing_product.data:
+            # Atualizar quantidade
+            print('Atualizando quantidade...')
+            new_quantity = existing_product.data[0]["quantity"] + newProduct.quantity
+            update_response = supabase.table("shoppingcart_products").update({
+                "quantity": new_quantity
+            }).eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
+            print(f'Quantidade atualizada: {update_response.data}')
+            result = update_response.data[0]
+        else:
+            # Adicionar novo produto
+            print('Adicionando novo produto...')
+            product_data = {
+                "shoppingcart_id": cart_id,
+                "product_id": newProduct.productId,
+                "quantity": newProduct.quantity
+            }
+            add_response = supabase.table("shoppingcart_products").insert(product_data).execute()
+            print(f'Produto adicionado: {add_response.data}')
+            result = add_response.data[0]
+        
+        print('Operação concluída com sucesso')
+        return {"message": "Produto adicionado ao carrinho", "cart_product": result}
+        
+    except Exception as e:
+        print(f'ERRO em add_product_to_cart: {str(e)}')
+        print(f'Tipo do erro: {type(e)}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao adicionar produto ao carrinho: {str(e)}")
 
 @app.get("/api/get_cart_products")
-def get_cart_products(
-    db: Session = Depends(get_db_session), 
-    current_user: dict = Depends(get_current_user)
-):
-    """Obter produtos do carrinho"""
-    user = get_user_from_supabase(current_user, db)
-    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == user.id).first()
-
-    if not shopping_cart:
-        return []
-
-    # Buscar os produtos do carrinho
-    cart_items = db.query(ShoppingCartProduct, Product).join(Product).filter(
-        ShoppingCartProduct.shoppingcart_id == shopping_cart.id
-    ).all()
-
-    result = []
-    for cart_item, product in cart_items:
-        result.append({
-            "id": product.id,
-            "name": product.name,
-            "artist": product.artist,
-            "valor": product.valor,
-            "quantity": cart_item.quantity,
-            "image_path": product.image_path
-        })
-
-    return result
+def get_cart_products(current_user: dict = Depends(get_current_user)):
+    """Obter produtos do carrinho do usuário"""
+    try:
+        print('=== DEBUG GET_CART_PRODUCTS ===')
+        print(f'Usuário atual: {current_user}')
+        
+        from supabase_client import supabase
+        
+        user_id = current_user["id"]
+        print(f'User ID: {user_id}')
+        
+        # Buscar carrinho do usuário
+        print('Buscando carrinho do usuário...')
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        print(f'Resposta do carrinho: {cart_response.data}')
+        
+        if not cart_response.data:
+            print('Carrinho não encontrado, criando novo carrinho...')
+            # Criar carrinho automaticamente para o usuário
+            cart_data = {
+                "user_id": user_id
+            }
+            cart_response = supabase.table("shoppingcarts").insert(cart_data).execute()
+            print(f'Novo carrinho criado: {cart_response.data}')
+            
+            # Retornar lista vazia para carrinho novo
+            return []
+        
+        cart_id = cart_response.data[0]["id"]
+        print(f'Carrinho encontrado: {cart_id}')
+        
+        # Buscar produtos no carrinho com join
+        print('Buscando produtos no carrinho...')
+        cart_products = supabase.table("shoppingcart_products").select(
+            "*, product:products(*)"
+        ).eq("shoppingcart_id", cart_id).execute()
+        
+        print(f'Produtos encontrados: {len(cart_products.data)}')
+        
+        # Formatar resposta
+        formatted_products = []
+        for item in cart_products.data:
+            product = item["product"]
+            formatted_product = {
+                "id": product["id"],
+                "name": product["name"],
+                "artist": product["artist"],
+                "valor": float(product["valor"]),
+                "quantity": item["quantity"],
+                "image_path": product.get("image_path")
+            }
+            formatted_products.append(formatted_product)
+        
+        print(f'Produtos formatados: {formatted_products}')
+        return formatted_products
+        
+    except Exception as e:
+        print(f'ERRO em get_cart_products: {str(e)}')
+        print(f'Tipo do erro: {type(e)}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos do carrinho: {str(e)}")
 
 # ===== ENDPOINTS DE PEDIDOS =====
 
@@ -590,6 +681,34 @@ async def debug_user(current_user: dict = Depends(get_current_user)):
         return {"error": str(e), "current_user": current_user}
 
 # ===== FIM DO DEBUG =====
+
+# Endpoint para verificar estrutura das tabelas (apenas para debug)
+@app.get("/api/debug/check_tables")
+def debug_check_tables(db: Session = Depends(get_db_session)):
+    """Verifica se as tabelas existem"""
+    try:
+        # Testar se consegue fazer query nas tabelas
+        users_count = db.query(User).count()
+        products_count = db.query(Product).count()
+        
+        try:
+            carts_count = db.query(ShoppingCart).count()
+        except Exception as e:
+            carts_count = f"ERRO: {str(e)}"
+        
+        try:
+            cart_products_count = db.query(ShoppingCartProduct).count()
+        except Exception as e:
+            cart_products_count = f"ERRO: {str(e)}"
+        
+        return {
+            "users": users_count,
+            "products": products_count,
+            "shopping_carts": carts_count,
+            "cart_products": cart_products_count
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
