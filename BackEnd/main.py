@@ -62,6 +62,7 @@ app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketpla
 mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f416e2192-96235831")
 
 # Configuração de arquivos estáticos
+app.mount("/assets", StaticFiles(directory=Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"), name="assets")
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
