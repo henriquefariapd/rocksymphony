@@ -157,19 +157,6 @@ async def api_info():
 async def health_check():
     return {"status": "healthy", "service": "Rock Symphony API"}
 
-# Rota para servir o frontend React
-@app.get("/")
-@app.get("/{full_path:path}")
-def serve_frontend(full_path: str = None):
-    # Caminho para o arquivo index.html do frontend buildado
-    frontend_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "index.html"
-    
-    if frontend_path.exists():
-        return FileResponse(frontend_path)
-    else:
-        # Fallback para desenvolvimento - retorna informações da API
-        return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
-
 @app.get("/health_db")
 def health_db():
     try:
@@ -980,6 +967,20 @@ def remove_product_from_cart(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao remover produto do carrinho: {str(e)}")
+
+# ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
+# Rota para servir o frontend React
+@app.get("/")
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str = None):
+    # Caminho para o arquivo index.html do frontend buildado
+    frontend_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "index.html"
+    
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
+    else:
+        # Fallback para desenvolvimento - retorna informações da API
+        return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
 
 if __name__ == "__main__":
     import uvicorn
