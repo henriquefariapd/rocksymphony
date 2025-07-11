@@ -64,8 +64,8 @@ mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f41
 # Configuração de arquivos estáticos
 # Assets do frontend (CSS, JS do Vite)
 frontend_assets_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "assets"
-if frontend_assets_path.exists():
-    app.mount("/assets", StaticFiles(directory=str(frontend_assets_path)), name="assets")
+# if frontend_assets_path.exists():
+#     app.mount("/assets", StaticFiles(directory=str(frontend_assets_path)), name="assets")
 
 # Configuração para servir o frontend React (se existir)
 frontend_dist_path = Path(os.getcwd()) / "FrontEnd" / "dist"

@@ -230,7 +230,7 @@ function Produtos() {
                 <td>
                   {produto.image_path ? (
                     <img
-                      src={`${apiUrl}/${produto.image_path}`}
+                      src={produto.image_path.startsWith('http') ? produto.image_path : `${apiUrl}/${produto.image_path}`}
                       alt={produto.name}
                       style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
                     />

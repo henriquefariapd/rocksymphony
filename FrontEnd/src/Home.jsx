@@ -241,7 +241,7 @@ function Home() {
           {produtos.map((produto) => (
             <div key={produto.id} className="produto-card">
               <img
-                src={`${apiUrl}/${produto.image_path}`}
+                src={produto.image_path.startsWith('http') ? produto.image_path : `${apiUrl}/${produto.image_path}`}
                 alt={produto.name}
                 className="produto-imagem"
               />
