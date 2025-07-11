@@ -65,6 +65,11 @@ mp = mercadopago.SDK("APP_USR-6446237437103604-040119-bca68443def1fb05bfa6643f41
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# Configuração para servir o frontend React (se existir)
+frontend_dist_path = Path(os.getcwd()) / "FrontEnd" / "dist"
+if frontend_dist_path.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
+
 # Configuração do CORS
 app.add_middleware(
     CORSMiddleware,
@@ -141,13 +146,26 @@ def get_supabase():
     return supabase
 
 # Endpoints básicos da API
-@app.get("/")
-async def root():
+@app.get("/api/info")
+async def api_info():
     return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0"}
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "Rock Symphony API"}
+
+# Rota para servir o frontend React
+@app.get("/")
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str = None):
+    # Caminho para o arquivo index.html do frontend buildado
+    frontend_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "index.html"
+    
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
+    else:
+        # Fallback para desenvolvimento - retorna informações da API
+        return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
 
 @app.get("/health_db")
 def health_db():
