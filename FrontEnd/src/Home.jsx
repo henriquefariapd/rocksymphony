@@ -9,6 +9,7 @@ import './Home.css';
 
 function Home() {
   const [produtos, setProdutos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [valor, setValor] = useState('');
@@ -26,6 +27,7 @@ function Home() {
 
   const fetchProdutos = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("access_token");
       if (!token) {
         toast.error("Usuário não autenticado. Por favor, faça login.");
@@ -60,6 +62,8 @@ function Home() {
     } catch (error) {
       console.error('[DEBUG] Erro ao buscar produtos:', error);
       toast.error('Erro ao carregar os produtos');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,7 +238,12 @@ function Home() {
     <div>
       <h2>Catálogo</h2>
 
-      {produtos.length === 0 ? (
+      {loading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Carregando produtos...</p>
+        </div>
+      ) : produtos.length === 0 ? (
         <p>Não há CDs cadastrados no momento.</p>
       ) : (
         <div className="produtos-grid">

@@ -34,7 +34,7 @@ function Header({ isLoggedIn, isAdmin, onLogout }) {
               <Link to="/produtos" className="space-button">
                 <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
               </Link>
-              <Link to="/pedidos" className="space-button">
+              <Link to="/" className="space-button">
                 <AiOutlineSchedule /> Ver pedidos {/* Ícone de hotel */}
               </Link>
               <Link to="/usuarios" className="space-button">

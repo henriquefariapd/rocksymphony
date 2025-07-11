@@ -5,6 +5,7 @@ import './Produtos.css';
 
 function Produtos() {
   const [produtos, setProdutos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
   const [artist, setArtist] = useState('');
@@ -20,6 +21,7 @@ function Produtos() {
 
   const fetchProdutos = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("access_token");
       console.log("=== DEBUG FETCH PRODUTOS ===");
       console.log("Token:", token);
@@ -51,6 +53,8 @@ function Produtos() {
     } catch (error) {
       console.error('Erro completo ao buscar produtos:', error);
       toast.error('Erro ao carregar os produtos');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -206,7 +210,12 @@ function Produtos() {
     <div>
       <h2>Gerenciar Produtos</h2>
       
-      {produtos.length === 0 ? (
+      {loading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Carregando produtos...</p>
+        </div>
+      ) : produtos.length === 0 ? (
         <p>Não há produtos cadastrados no momento.</p>
       ) : (
         <table className="reserv-table m-bottom-20">
