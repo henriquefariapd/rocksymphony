@@ -28,7 +28,6 @@ from models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, Sho
 # Importações do sistema de autenticação Supabase
 from auth_routes import router as auth_router
 from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
-from supabase_client import supabase
 
 # Criação da instância do FastAPI
 app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketplace de CDs de Rock")
@@ -43,12 +42,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Configuração do CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", 
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000"
-    ],  # URLs do frontend
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # URLs do frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,7 +68,7 @@ def get_user_from_supabase(current_user: dict, db: Session):
         # Se não encontrar, criar um novo usuário com os dados do Supabase
         user = User(
             id=current_user["id"],
-            usuario=current_user.get("usuario", ""),
+            usuario=current_user.get("usuario"),
             is_admin=current_user.get("is_admin", False)
         )
         db.add(user)
@@ -105,26 +99,12 @@ def health_db():
 # ===== ENDPOINTS DE PRODUTOS =====
 
 @app.get("/api/products")
-async def get_available_products(current_user: dict = Depends(get_current_user)):
+async def get_available_products(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db_session)):
     """Buscar todos os produtos disponíveis"""
-    print(f"[DEBUG] Buscando produtos para usuário: {current_user['id']}")
-    
-    try:
-        # Buscar produtos no Supabase
-        response = supabase.table("products").select("*").execute()
-        
-        print(f"[DEBUG] Produtos encontrados no Supabase: {len(response.data) if response.data else 0}")
-        
-        if response.data:
-            print(f"[DEBUG] Primeiro produto: {response.data[0]}")
-            return response.data
-        else:
-            print("[DEBUG] Nenhum produto encontrado no Supabase")
-            raise HTTPException(status_code=404, detail="Produtos não encontrados")
-            
-    except Exception as e:
-        print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
+    products = db.query(Product).all()
+    if not products:
+        raise HTTPException(status_code=404, detail="Produtos não encontrados")
+    return products
 
 class ProductCreate(BaseModel):
     name: str
@@ -141,7 +121,8 @@ async def create_new_product(
     valor: float = Form(...),
     remaining: int = Form(...),
     file: UploadFile = File(None),
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_admin_user),
+    db: Session = Depends(get_db_session)
 ):
     """Criar um novo produto (apenas admin)"""
     try:
@@ -156,26 +137,25 @@ async def create_new_product(
                 content = await file.read()
                 buffer.write(content)
             
-            image_path = f"uploads/{file_name}"
+            image_path = f"/uploads/{file_name}"
         
-        # Criar novo produto no Supabase
-        new_product = {
-            "name": name,
-            "artist": artist,
-            "description": description,
-            "valor": int(valor),
-            "remaining": remaining,
-            "image_path": image_path
-        }
+        # Criar novo produto
+        new_product = Product(
+            name=name,
+            artist=artist,
+            description=description,
+            valor=int(valor),
+            remaining=remaining,
+            image_path=image_path
+        )
+        db.add(new_product)
+        db.commit()
+        db.refresh(new_product)
         
-        response = supabase.table("products").insert(new_product).execute()
-        
-        if response.data:
-            return {"message": f"Produto '{name}' criado com sucesso!", "product": response.data[0]}
-        else:
-            raise HTTPException(status_code=500, detail="Erro ao criar produto no banco")
+        return {"message": f"Produto '{new_product.name}' criado com sucesso!", "product": new_product}
         
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao criar produto: {str(e)}")
 
 class ProductUpdate(BaseModel):
@@ -189,48 +169,49 @@ class ProductUpdate(BaseModel):
 async def edit_product(
     product_id: int, 
     product: ProductUpdate, 
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_admin_user), 
+    db: Session = Depends(get_db_session)
 ):
     """Editar um produto existente (apenas admin)"""
     try:
-        # Atualizar produto no Supabase
-        response = supabase.table("products").update({
-            "name": product.name,
-            "artist": product.artist,
-            "description": product.description,
-            "valor": product.valor,
-            "remaining": product.remaining
-        }).eq("id", product_id).execute()
-        
-        if response.data:
-            return {"message": f"Produto '{product.name}' atualizado com sucesso!"}
-        else:
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+        if not db_product:
             raise HTTPException(status_code=404, detail="Produto não encontrado")
         
+        db_product.name = product.name
+        db_product.artist = product.artist
+        db_product.description = product.description
+        db_product.valor = product.valor
+        db_product.remaining = product.remaining
+        
+        db.commit()
+        db.refresh(db_product)
+        
+        return {"message": f"Produto '{db_product.name}' atualizado com sucesso!"}
+        
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao editar produto: {str(e)}")
 
 @app.delete("/api/products/{product_id}")
 async def delete_product(
     product_id: int, 
-    current_user: dict = Depends(get_current_admin_user)
+    current_user: dict = Depends(get_current_admin_user), 
+    db: Session = Depends(get_db_session)
 ):
     """Excluir um produto (apenas admin)"""
     try:
-        # Buscar produto antes de deletar para obter o nome
-        product_response = supabase.table("products").select("name").eq("id", product_id).execute()
-        
-        if not product_response.data:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
             raise HTTPException(status_code=404, detail="Produto não encontrado")
         
-        product_name = product_response.data[0]["name"]
+        db.delete(product)
+        db.commit()
         
-        # Deletar produto do Supabase
-        response = supabase.table("products").delete().eq("id", product_id).execute()
-        
-        return {"message": f"Produto '{product_name}' excluído com sucesso!"}
+        return {"message": f"Produto '{product.name}' excluído com sucesso!"}
         
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {str(e)}")
 
 # ===== ENDPOINTS DE CARRINHO =====
@@ -472,6 +453,17 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "usuario": current_user.get("usuario"),
         "is_admin": current_user.get("is_admin", False)
     }
+
+# ===== ENDPOINTS LEGADOS (COMPATIBILITY) =====
+
+# Manter compatibilidade com frontend que ainda usa /api/spaces
+@app.get("/api/spaces")
+async def get_spaces_compatibility(
+    current_user: dict = Depends(get_current_user), 
+    db: Session = Depends(get_db_session)
+):
+    """Endpoint de compatibilidade - redireciona para /api/products"""
+    return await get_available_products(current_user, db)
 
 if __name__ == "__main__":
     import uvicorn

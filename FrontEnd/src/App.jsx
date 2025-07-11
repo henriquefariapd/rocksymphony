@@ -24,18 +24,21 @@ function App() {
   };
 
   const apiUrl =
-    window.location.hostname === "localhost"
-      ? "http://localhost:8000"
+    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://127.0.0.1:8000"
       : "https://rock-symphony-91f7e39d835d.herokuapp.com";
 
   // Função para buscar os dados do usuário (usuário logado)
   const fetchMe = async () => {
     try {
       const token = localStorage.getItem("access_token");
+      console.log("=== DEBUG FETCH ME ===");
+      console.log("Token:", token);
+      console.log("URL:", `${apiUrl}/api/me`);
+      
       if (!token || token === 'undefined') return;
-      const response = await axios.post(
-        `${apiUrl}/me`,
-        {},
+      const response = await axios.get(
+        `${apiUrl}/api/me`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -43,10 +46,12 @@ function App() {
         }
       );
 
+      console.log("FetchMe response:", response.data);
       setIsAdmin(response.data.is_admin);
     } catch (err) {
-      localStorage.removeItem("access_token");
       console.error("Erro ao recuperar usuário:", err);
+      console.error("Error response:", err.response?.data);
+      localStorage.removeItem("access_token");
     }
   };
 

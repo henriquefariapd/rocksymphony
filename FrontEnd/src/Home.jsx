@@ -19,8 +19,8 @@ function Home() {
     setExpandedProduct(expandedProduct === productId ? null : productId);
   };
 
-  const apiUrl = window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
+  const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:8000'
     : 'https://rock-symphony-91f7e39d835d.herokuapp.com';
 
   const fetchEspacos = async () => {
@@ -30,17 +30,35 @@ function Home() {
         toast.error("Usuário não autenticado. Por favor, faça login.");
         return;
       }
-      const response = await fetch(`${apiUrl}/api/spaces`, {
+      
+      console.log("[DEBUG] Buscando produtos...");
+      console.log("[DEBUG] URL:", `${apiUrl}/api/products`);
+      console.log("[DEBUG] Token:", token ? "presente" : "ausente");
+      
+      const response = await fetch(`${apiUrl}/api/products`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
+      console.log("[DEBUG] Response status:", response.status);
+      console.log("[DEBUG] Response ok:", response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("[DEBUG] Error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
       const data = await response.json();
+      console.log("[DEBUG] Produtos recebidos:", data);
+      console.log("[DEBUG] Número de produtos:", data.length);
+      
       setProdutos(data);
     } catch (error) {
-      toast.error('Erro ao carregar os espaços');
-      console.error('Erro ao buscar espaços:', error);
+      console.error('[DEBUG] Erro ao buscar produtos:', error);
+      toast.error('Erro ao carregar os produtos');
     }
   };
 

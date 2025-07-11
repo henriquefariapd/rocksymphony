@@ -13,28 +13,43 @@ function Espacos() {
   const [imagem, setImagem] = useState(null);
   const [editingEspaco, setEditingEspaco] = useState(null);
 
-  const apiUrl = window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
+  const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:8000'
     : 'https://rock-symphony-91f7e39d835d.herokuapp.com';
 
   const fetchEspacos = async () => {
     try {
       const token = localStorage.getItem("access_token");
+      console.log("=== DEBUG FETCH ESPACOS ===");
+      console.log("Token:", token);
+      console.log("API URL:", `${apiUrl}/api/products`);
+      
       if (!token) {
         toast.error("Usuário não autenticado. Por favor, faça login.");
         return;
       }
-      const response = await fetch(`${apiUrl}/api/spaces`, {
+      const response = await fetch(`${apiUrl}/api/products`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
       const data = await response.json();
+      console.log("Data received:", data);
       setEspacos(data);
     } catch (error) {
+      console.error('Erro completo ao buscar espaços:', error);
       toast.error('Erro ao carregar os espaços');
-      console.error('Erro ao buscar espaços:', error);
     }
   };
 
@@ -54,6 +69,17 @@ function Espacos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("access_token");
+    
+    console.log("=== DEBUG SUBMIT ===");
+    console.log("Token:", token);
+    console.log("Nome:", nome);
+    console.log("Artist:", artist);
+    console.log("Description:", description);
+    console.log("Valor:", valor);
+    console.log("Remaining:", remaining);
+    console.log("Imagem:", imagem);
+    console.log("EditingEspaco:", editingEspaco);
+    
     if (!token) {
       toast.error("Usuário não autenticado. Por favor, faça login.");
       return;
@@ -66,17 +92,26 @@ function Espacos() {
     formData.append('valor', valor);
     formData.append('remaining', remaining);
     if (imagem) {
-      formData.append('image', imagem);
+      formData.append('file', imagem);
+    }
+
+    // Log do FormData
+    console.log("FormData entries:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
     }
 
     try {
       const url = editingEspaco
-        ? `${apiUrl}/spaces/${editingEspaco.id}`
-        : `${apiUrl}/spaces`;
+        ? `${apiUrl}/api/products/${editingEspaco.id}`
+        : `${apiUrl}/api/products`;
 
       const method = editingEspaco ? 'PUT' : 'POST';
 
-      await fetch(url, {
+      console.log("URL:", url);
+      console.log("Method:", method);
+
+      const response = await fetch(url, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -84,17 +119,29 @@ function Espacos() {
         body: formData,
       });
 
-      toast.success(editingEspaco ? 'Espaço atualizado!' : 'Espaço cadastrado!');
-      setNome('');
-      setValor('');
-      setRemaining('');
-      setImagem(null);
-      setShowCadastro(false);
-      setEditingEspaco(null);
-      fetchEspacos();
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+      
+      const responseData = await response.json();
+      console.log("Response data:", responseData);
+
+      if (response.ok) {
+        toast.success(editingEspaco ? 'Espaço atualizado!' : 'Espaço cadastrado!');
+        setNome('');
+        setArtist('');
+        setDescription('');
+        setValor('');
+        setRemaining('');
+        setImagem(null);
+        setShowCadastro(false);
+        setEditingEspaco(null);
+        fetchEspacos();
+      } else {
+        toast.error(`Erro: ${responseData.detail || 'Erro desconhecido'}`);
+      }
     } catch (error) {
+      console.error('Erro completo:', error);
       toast.error('Erro ao salvar o espaço');
-      console.error('Erro ao salvar o espaço:', error);
     }
   };
 
@@ -111,7 +158,7 @@ function Espacos() {
     const confirmDelete = window.confirm('Tem certeza que deseja excluir este espaço?');
     if (confirmDelete) {
       try {
-        await fetch(`${apiUrl}/spaces/${espacoId}`, {
+        await fetch(`${apiUrl}/api/products/${espacoId}`, {
           method: 'DELETE',
         });
         toast.success('Espaço excluído com sucesso!');
