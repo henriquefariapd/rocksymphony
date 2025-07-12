@@ -18,6 +18,15 @@ function Home() {
   const [editingEspaco, setEditingEspaco] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // Estados para busca e filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [stampFilter, setStampFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
+  const [filters, setFilters] = useState({ countries: [], stamps: [], release_years: [] });
+  const [filteredProdutos, setFilteredProdutos] = useState([]);
+  const [allCountries, setAllCountries] = useState([]);
 
   const handleToggleDescription = (productId) => {
     setExpandedProduct(expandedProduct === productId ? null : productId);
@@ -64,6 +73,7 @@ function Home() {
       console.log("[DEBUG] Número de produtos:", data.length);
       
       setProdutos(data);
+      setFilteredProdutos(data); // Inicializar produtos filtrados
     } catch (error) {
       console.error('[DEBUG] Erro ao buscar produtos:', error);
       toast.error('Erro ao carregar os produtos');
@@ -72,9 +82,85 @@ function Home() {
     }
   };
 
+  // Função para buscar filtros disponíveis
+  const fetchFilters = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/api/products/filters`);
+      if (response.ok) {
+        const data = await response.json();
+        setFilters(data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar filtros:', error);
+    }
+  };
+
+  // Função para buscar países disponíveis
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/api/countries`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllCountries(data.countries);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar países:', error);
+    }
+  };
+
+  // Função para aplicar filtros
+  const applyFilters = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('q', searchQuery);
+      if (countryFilter) params.append('country', countryFilter);
+      if (stampFilter) params.append('stamp', stampFilter);
+      if (yearFilter) params.append('release_year', yearFilter);
+
+      const token = localStorage.getItem("access_token");
+      const headers = { "Content-Type": "application/json" };
+      if (token && token !== 'undefined') {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiUrl}/api/products/search?${params.toString()}`, {
+        method: "GET",
+        headers: headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFilteredProdutos(data);
+      }
+    } catch (error) {
+      console.error('Erro ao aplicar filtros:', error);
+      toast.error('Erro ao aplicar filtros');
+    }
+  };
+
+  // Função para limpar filtros
+  const clearFilters = () => {
+    setSearchQuery('');
+    setCountryFilter('');
+    setStampFilter('');
+    setYearFilter('');
+    setFilteredProdutos(produtos);
+  };
+
   useEffect(() => {
     fetchProdutos();
+    fetchFilters();
+    fetchCountries();
   }, []);
+
+  // UseEffect para aplicar filtros quando mudarem
+  useEffect(() => {
+    if (searchQuery || countryFilter || stampFilter || yearFilter) {
+      applyFilters();
+    } else {
+      setFilteredProdutos(produtos);
+    }
+  }, [searchQuery, countryFilter, stampFilter, yearFilter, produtos]);
 
   const handleCadastroClick = () => {
     setShowCadastro(!showCadastro);
@@ -235,6 +321,58 @@ function Home() {
     <div>
       <h2>Catálogo</h2>
 
+      {/* Barra de busca e filtros */}
+      <div className="search-filters-container">
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Buscar por nome do CD ou artista..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        
+        <div className="filters-row">
+          <select
+            value={stampFilter}
+            onChange={(e) => setStampFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Todos os Selos</option>
+            {filters.stamps.map(stamp => (
+              <option key={stamp} value={stamp}>{stamp}</option>
+            ))}
+          </select>
+
+          <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Todos os Anos</option>
+            {filters.release_years.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+
+          <select
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Todos os Países</option>
+            {allCountries.map(country => (
+              <option key={country} value={country}>{country}</option>
+            ))}
+          </select>
+
+          <button onClick={clearFilters} className="clear-filters-btn">
+            Limpar Filtros
+          </button>
+        </div>
+      </div>
+
       {/* Modal de Login */}
       <LoginModal 
         isOpen={showLoginModal} 
@@ -246,11 +384,23 @@ function Home() {
           <div className="loading-spinner"></div>
           <p>Carregando produtos...</p>
         </div>
-      ) : produtos.length === 0 ? (
-        <p>Não há CDs cadastrados no momento.</p>
+      ) : filteredProdutos.length === 0 ? (
+        <div className="no-results">
+          <p>
+            {searchQuery || countryFilter || stampFilter || yearFilter 
+              ? `Nenhum resultado encontrado para sua busca.`
+              : 'Não há CDs cadastrados no momento.'
+            }
+          </p>
+          {(searchQuery || countryFilter || stampFilter || yearFilter) && (
+            <button onClick={clearFilters} className="clear-filters-btn">
+              Limpar Filtros
+            </button>
+          )}
+        </div>
       ) : (
         <div className="produtos-grid">
-          {produtos.map((produto) => (
+          {filteredProdutos.map((produto) => (
             <div key={produto.id} className="produto-card">
               <img
                 src={produto.image_path.startsWith('http') ? produto.image_path : `${apiUrl}/${produto.image_path}`}
@@ -258,7 +408,22 @@ function Home() {
                 className="produto-imagem"
               />
               <div className="produto-info">
-                <h3>{produto.name} - {produto.artist}</h3>
+                <h3>{produto.name}</h3>
+                <p className="produto-artist">{produto.artist}</p>
+                
+                {/* Novos campos */}
+                <div className="produto-details">
+                  {produto.reference_code && (
+                    <p className="produto-reference">Ref: {produto.reference_code}</p>
+                  )}
+                  {produto.stamp && (
+                    <p className="produto-stamp">Selo: {produto.stamp}</p>
+                  )}
+                  {produto.release_year && (
+                    <p className="produto-year">Ano: {produto.release_year}</p>
+                  )}
+                </div>
+                
                 {/* Accordion de descrição */}
                 <div className="accordion-container">
                   <p className="produto-value">R$ {produto.valor}</p>

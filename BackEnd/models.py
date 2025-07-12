@@ -1,11 +1,60 @@
-from sqlalchemy import ForeignKey, create_engine, Column, Integer, String, Boolean, DateTime, Numeric, Text
+from sqlalchemy import ForeignKey, create_engine, Column, Integer, String, Boolean, DateTime, Numeric, Text, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import enum
 
 load_dotenv()
+
+# Enum para países
+class CountryEnum(enum.Enum):
+    BRASIL = "Brasil"
+    ESTADOS_UNIDOS = "Estados Unidos"
+    REINO_UNIDO = "Reino Unido"
+    ALEMANHA = "Alemanha"
+    FRANCA = "França"
+    JAPAO = "Japão"
+    CANADA = "Canadá"
+    AUSTRALIA = "Austrália"
+    ARGENTINA = "Argentina"
+    MEXICO = "México"
+    HOLANDA = "Holanda"
+    SUECIA = "Suécia"
+    NORUEGA = "Noruega"
+    DINAMARCA = "Dinamarca"
+    FINLANDIA = "Finlândia"
+    ITALIA = "Itália"
+    ESPANHA = "Espanha"
+    PORTUGAL = "Portugal"
+    BELGICA = "Bélgica"
+    AUSTRIA = "Áustria"
+    SUICA = "Suíça"
+    POLONIA = "Polônia"
+    REPUBLICA_TCHECA = "República Tcheca"
+    HUNGRIA = "Hungria"
+    GRECIA = "Grécia"
+    TURQUIA = "Turquia"
+    RUSSIA = "Rússia"
+    CHINA = "China"
+    COREIA_DO_SUL = "Coreia do Sul"
+    INDIA = "Índia"
+    TAILANDIA = "Tailândia"
+    SINGAPURA = "Singapura"
+    NOVA_ZELANDIA = "Nova Zelândia"
+    AFRICA_DO_SUL = "África do Sul"
+    CHILE = "Chile"
+    COLOMBIA = "Colômbia"
+    PERU = "Peru"
+    URUGUAI = "Uruguai"
+    PARAGUAI = "Paraguai"
+    BOLIVIA = "Bolívia"
+    EQUADOR = "Equador"
+    VENEZUELA = "Venezuela"
+    CUBA = "Cuba"
+    JAMAICA = "Jamaica"
+    OUTRO = "Outro"
 
 # Base para os modelos do SQLAlchemy
 Base = declarative_base()
@@ -36,6 +85,9 @@ class Product(Base):
     genre = Column(String(100), nullable=True)  # Gênero musical
     release_year = Column(Integer, nullable=True)  # Ano de lançamento
     label = Column(String(100), nullable=True)  # Gravadora
+    reference_code = Column(String(100), nullable=True)  # Código de referência
+    stamp = Column(String(100), nullable=True)  # Selo
+    country = Column(Enum(CountryEnum), nullable=True)  # País de origem
     created_at = Column(DateTime, default=datetime.utcnow)
     
     shoppingcarts = relationship("ShoppingCartProduct", back_populates="product")

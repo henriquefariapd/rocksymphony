@@ -56,6 +56,55 @@ def get_supabase_client():
     """Função helper para obter cliente Supabase (funciona local e Heroku)"""
     return supabase
 
+# Lista de países disponíveis
+COUNTRY_OPTIONS = [
+    'Brasil',
+    'Estados Unidos',
+    'Reino Unido',
+    'Alemanha',
+    'França',
+    'Japão',
+    'Canadá',
+    'Austrália',
+    'Argentina',
+    'México',
+    'Holanda',
+    'Suécia',
+    'Noruega',
+    'Dinamarca',
+    'Finlândia',
+    'Itália',
+    'Espanha',
+    'Portugal',
+    'Bélgica',
+    'Áustria',
+    'Suíça',
+    'Polônia',
+    'República Tcheca',
+    'Hungria',
+    'Grécia',
+    'Turquia',
+    'Rússia',
+    'China',
+    'Coreia do Sul',
+    'Índia',
+    'Tailândia',
+    'Singapura',
+    'Nova Zelândia',
+    'África do Sul',
+    'Chile',
+    'Colômbia',
+    'Peru',
+    'Uruguai',
+    'Paraguai',
+    'Bolívia',
+    'Equador',
+    'Venezuela',
+    'Cuba',
+    'Jamaica',
+    'Outro'
+]
+
 # Criação da instância do FastAPI
 app = FastAPI(title="Rock Symphony API", version="1.0.0", description="Marketplace de CDs de Rock")
 
@@ -174,6 +223,11 @@ def health_db():
 
 # ===== ENDPOINTS DE PRODUTOS =====
 
+@app.get("/api/countries")
+async def get_countries():
+    """Obter lista de países disponíveis"""
+    return {"countries": COUNTRY_OPTIONS}
+
 @app.get("/api/products")
 async def get_available_products(current_user: dict = Depends(get_current_user_optional)):
     """Buscar todos os produtos disponíveis - acesso público"""
@@ -203,6 +257,10 @@ class ProductCreate(BaseModel):
     description: str
     valor: float
     remaining: int
+    reference_code: str = ""
+    stamp: str = ""
+    release_year: int = None
+    country: str = ""
 
 @app.post("/api/products")
 async def create_new_product(
@@ -211,6 +269,10 @@ async def create_new_product(
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
+    reference_code: str = Form(""),
+    stamp: str = Form(""),
+    release_year: int = Form(None),
+    country: str = Form(""),
     file: UploadFile = File(None),
     current_user: dict = Depends(get_current_user)  # Mudei para get_current_user temporariamente
 ):
@@ -281,7 +343,11 @@ async def create_new_product(
             "description": description,
             "valor": float(valor),
             "remaining": remaining,
-            "image_path": image_path
+            "image_path": image_path,
+            "reference_code": reference_code,
+            "stamp": stamp,
+            "release_year": release_year,
+            "country": country
         }
         
         print(f"[DEBUG] Dados do produto: {new_product}")
@@ -310,6 +376,10 @@ class ProductUpdate(BaseModel):
     description: str
     valor: float
     remaining: int
+    reference_code: str = ""
+    stamp: str = ""
+    release_year: int = None
+    country: str = ""
 
 @app.put("/api/products/{product_id}")
 async def edit_product(
@@ -319,6 +389,10 @@ async def edit_product(
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
+    reference_code: str = Form(""),
+    stamp: str = Form(""),
+    release_year: int = Form(None),
+    country: str = Form(""),
     file: UploadFile = File(None),  # Imagem opcional
     current_user: dict = Depends(get_current_admin_user)
 ):
@@ -326,6 +400,7 @@ async def edit_product(
     try:
         print(f"[DEBUG] Editando produto ID: {product_id}")
         print(f"[DEBUG] Dados recebidos: name={name}, artist={artist}, valor={valor}, remaining={remaining}")
+        print(f"[DEBUG] Novos campos: reference_code={reference_code}, stamp={stamp}, release_year={release_year}, country={country}")
         print(f"[DEBUG] Nova imagem: {file.filename if file else 'Nenhuma'}")
         
         # Buscar produto atual para obter a imagem antiga
@@ -401,7 +476,11 @@ async def edit_product(
             "description": description,
             "valor": valor,
             "remaining": remaining,
-            "image_path": new_image_path
+            "image_path": new_image_path,
+            "reference_code": reference_code,
+            "stamp": stamp,
+            "release_year": release_year,
+            "country": country
         }
         
         print(f"[DEBUG] Atualizando produto com dados: {update_data}")
@@ -1501,6 +1580,87 @@ async def get_all_orders_admin(
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
+
+# ===== ENDPOINTS DE PRODUTOS COM FILTROS =====
+
+@app.get("/api/products/search")
+async def search_products(
+    q: str = "",  # Busca por nome ou artista
+    country: str = "",  # Filtro por país
+    stamp: str = "",  # Filtro por selo
+    release_year: int = None,  # Filtro por ano
+    current_user: dict = Depends(get_current_user_optional)
+):
+    """Buscar produtos com filtros"""
+    try:
+        user_id = current_user['id'] if current_user else "anônimo"
+        print(f"[DEBUG] Buscando produtos para usuário: {user_id}")
+        print(f"[DEBUG] Filtros: q='{q}', country='{country}', stamp='{stamp}', release_year={release_year}")
+        
+        # Construir query base
+        query = supabase.table("products").select("*")
+        
+        # Filtro por busca textual (nome ou artista)
+        if q:
+            # No Supabase, usar ilike para busca case-insensitive
+            query = query.or_(f"name.ilike.%{q}%,artist.ilike.%{q}%")
+        
+        # Filtros por campos específicos
+        if country:
+            query = query.eq("country", country)
+        
+        if stamp:
+            query = query.eq("stamp", stamp)
+        
+        if release_year:
+            query = query.eq("release_year", release_year)
+        
+        # Executar query
+        response = query.execute()
+        
+        print(f"[DEBUG] Produtos encontrados: {len(response.data) if response.data else 0}")
+        
+        if response.data:
+            return response.data
+        else:
+            return []
+            
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
+
+@app.get("/api/products/filters")
+async def get_product_filters():
+    """Obter opções para filtros de produtos"""
+    try:
+        # Buscar valores únicos para os filtros
+        products_response = supabase.table("products").select("country,stamp,release_year").execute()
+        
+        if not products_response.data:
+            return {"countries": [], "stamps": [], "release_years": []}
+        
+        # Extrair valores únicos
+        countries = set()
+        stamps = set()
+        release_years = set()
+        
+        for product in products_response.data:
+            if product.get("country"):
+                countries.add(product["country"])
+            if product.get("stamp"):
+                stamps.add(product["stamp"])
+            if product.get("release_year"):
+                release_years.add(product["release_year"])
+        
+        return {
+            "countries": sorted(list(countries)),
+            "stamps": sorted(list(stamps)),
+            "release_years": sorted(list(release_years), reverse=True)
+        }
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar filtros: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar filtros: {str(e)}")
 
 # ===== WEBHOOK MERCADOPAGO =====
 

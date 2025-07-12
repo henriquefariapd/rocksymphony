@@ -12,8 +12,13 @@ function Produtos() {
   const [description, setDescription] = useState('');
   const [valor, setValor] = useState('');
   const [remaining, setRemaining] = useState('');
+  const [referenceCode, setReferenceCode] = useState('');
+  const [stamp, setStamp] = useState('');
+  const [releaseYear, setReleaseYear] = useState('');
+  const [country, setCountry] = useState('');
   const [imagem, setImagem] = useState(null);
   const [editingProduto, setEditingProduto] = useState(null);
+  const [countries, setCountries] = useState([]);
 
   const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
@@ -58,8 +63,31 @@ function Produtos() {
     }
   };
 
+  const fetchCountries = async () => {
+    try {
+      console.log("=== DEBUG FETCH COUNTRIES ===");
+      console.log("API URL:", `${apiUrl}/api/countries`);
+      
+      const response = await fetch(`${apiUrl}/api/countries`);
+      console.log("Countries response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Countries data:", data);
+        setCountries(data.countries || []);
+      } else {
+        console.error('Erro no response de países:', response.status);
+        setCountries([]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar países:', error);
+      setCountries([]);
+    }
+  };
+
   useEffect(() => {
     fetchProdutos();
+    fetchCountries();
   }, []);
 
   const handleCadastroClick = () => {
@@ -70,6 +98,10 @@ function Produtos() {
     setDescription('');
     setValor('');
     setRemaining('');
+    setReferenceCode('');
+    setStamp('');
+    setReleaseYear('');
+    setCountry('');
     setImagem(null);
   };
 
@@ -109,6 +141,10 @@ function Produtos() {
       formData.append('description', description);
       formData.append('valor', valor);
       formData.append('remaining', remaining);
+      formData.append('reference_code', referenceCode);
+      formData.append('stamp', stamp);
+      formData.append('release_year', releaseYear || '');
+      formData.append('country', country);
       
       // Adicionar imagem se existir
       if (imagem) {
@@ -117,6 +153,8 @@ function Produtos() {
       }
 
       console.log("Enviando FormData");
+      console.log("Country value:", country);
+      console.log("Countries array:", countries);
       // Log do FormData
       for (let [key, value] of formData.entries()) {
         console.log(key, value);
@@ -164,6 +202,10 @@ function Produtos() {
     setDescription(produto.description);
     setValor(produto.valor);
     setRemaining(produto.remaining);
+    setReferenceCode(produto.reference_code || '');
+    setStamp(produto.stamp || '');
+    setReleaseYear(produto.release_year || '');
+    setCountry(produto.country || '');
     setImagem(null); // não carregamos imagem existente ainda
     setShowCadastro(true);
   };
@@ -228,6 +270,9 @@ function Produtos() {
           <tr>
             <th>Artista</th>
             <th>Álbum/CD</th>
+            <th>Referência</th>
+            <th>Selo</th>
+            <th>Ano</th>
             <th>Valor</th>
             <th>Estoque</th>
             <th>Imagem</th>
@@ -239,6 +284,9 @@ function Produtos() {
               <tr key={produto.id}>
                 <td>{produto.artist}</td>
                 <td>{produto.name}</td>
+                <td>{produto.reference_code || '-'}</td>
+                <td>{produto.stamp || '-'}</td>
+                <td>{produto.release_year || '-'}</td>
                 <td>R$ {produto.valor}</td>
                 <td>{produto.remaining}</td>
                 <td>
@@ -347,6 +395,65 @@ function Produtos() {
               accept="image/*"
               onChange={(e) => setImagem(e.target.files[0])}
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="reference_code">Referência:</label>
+            <input
+              className="form-control"
+              type="text"
+              id="reference_code"
+              value={referenceCode}
+              onChange={(e) => setReferenceCode(e.target.value)}
+              placeholder="Ex: GNR-001"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="stamp">Selo:</label>
+            <input
+              className="form-control"
+              type="text"
+              id="stamp"
+              value={stamp}
+              onChange={(e) => setStamp(e.target.value)}
+              placeholder="Ex: Geffen Records"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="release_year">Ano de Lançamento:</label>
+            <input
+              className="form-control"
+              type="number"
+              id="release_year"
+              value={releaseYear}
+              onChange={(e) => setReleaseYear(e.target.value)}
+              min="1900"
+              max={new Date().getFullYear()}
+              placeholder="Ex: 1987"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="country">País de Origem:</label>
+            <select
+              className="form-control"
+              id="country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              <option value="">Selecione um país</option>
+              {countries && countries.length > 0 ? (
+                countries.map((countryOption) => (
+                  <option key={countryOption} value={countryOption}>
+                    {countryOption}
+                  </option>
+                ))
+              ) : (
+                <option value="">Carregando países...</option>
+              )}
+            </select>
           </div>
 
           {imagem && (
