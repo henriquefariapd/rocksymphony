@@ -72,8 +72,16 @@ function Home() {
       console.log("[DEBUG] Produtos recebidos:", data);
       console.log("[DEBUG] Número de produtos:", data.length);
       
-      setProdutos(data);
-      setFilteredProdutos(data); // Inicializar produtos filtrados
+      // Verificar se data é um array
+      if (Array.isArray(data)) {
+        setProdutos(data);
+        setFilteredProdutos(data); // Inicializar produtos filtrados
+      } else {
+        console.error("[DEBUG] Produtos recebidos não são um array:", data);
+        setProdutos([]);
+        setFilteredProdutos([]);
+        toast.error('Erro no formato dos dados dos produtos');
+      }
     } catch (error) {
       console.error('[DEBUG] Erro ao buscar produtos:', error);
       toast.error('Erro ao carregar os produtos');
@@ -123,17 +131,39 @@ function Home() {
         headers.Authorization = `Bearer ${token}`;
       }
 
+      console.log("[DEBUG] Aplicando filtros:", {
+        searchQuery, countryFilter, stampFilter, yearFilter
+      });
+
       const response = await fetch(`${apiUrl}/api/products/search?${params.toString()}`, {
         method: "GET",
         headers: headers,
       });
 
+      console.log("[DEBUG] Resposta dos filtros status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
-        setFilteredProdutos(data);
+        console.log("[DEBUG] Dados de busca recebidos:", data);
+        
+        // Verificar se data é um array
+        if (Array.isArray(data)) {
+          setFilteredProdutos(data);
+        } else {
+          console.error("[DEBUG] Resposta da busca não é um array:", data);
+          setFilteredProdutos([]);
+          toast.error('Erro no formato dos dados de busca');
+        }
+      } else {
+        console.error("[DEBUG] Erro na resposta da busca:", response.status);
+        const errorText = await response.text();
+        console.error("[DEBUG] Texto do erro:", errorText);
+        setFilteredProdutos([]);
+        toast.error('Erro ao buscar produtos');
       }
     } catch (error) {
       console.error('Erro ao aplicar filtros:', error);
+      setFilteredProdutos([]);
       toast.error('Erro ao aplicar filtros');
     }
   };
@@ -144,7 +174,12 @@ function Home() {
     setCountryFilter('');
     setStampFilter('');
     setYearFilter('');
-    setFilteredProdutos(produtos);
+    // Garantir que produtos seja um array antes de definir filteredProdutos
+    if (Array.isArray(produtos)) {
+      setFilteredProdutos(produtos);
+    } else {
+      setFilteredProdutos([]);
+    }
   };
 
   useEffect(() => {
@@ -158,7 +193,12 @@ function Home() {
     if (searchQuery || countryFilter || stampFilter || yearFilter) {
       applyFilters();
     } else {
-      setFilteredProdutos(produtos);
+      // Garantir que produtos seja um array antes de definir filteredProdutos
+      if (Array.isArray(produtos)) {
+        setFilteredProdutos(produtos);
+      } else {
+        setFilteredProdutos([]);
+      }
     }
   }, [searchQuery, countryFilter, stampFilter, yearFilter, produtos]);
 
@@ -383,6 +423,11 @@ function Home() {
           <div className="loading-spinner"></div>
           <p>Carregando produtos...</p>
         </div>
+      ) : !Array.isArray(filteredProdutos) ? (
+        <div className="error-container">
+          <p>Erro ao carregar produtos. Recarregue a página.</p>
+          <button onClick={() => window.location.reload()}>Recarregar</button>
+        </div>
       ) : filteredProdutos.length === 0 ? (
         <div className="no-results">
           <p>
@@ -408,7 +453,7 @@ function Home() {
               />
               <div className="produto-info">
                 <h3>{produto.name}</h3>
-                <p className="produto-artist">{produto.artist}</p>
+                <p className="produto-artist">{produto.artist_name || produto.artist || 'Artista não informado'}</p>
                 
                 {/* Novos campos */}
                 <div className="produto-details">

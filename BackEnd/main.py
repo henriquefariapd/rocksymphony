@@ -292,6 +292,104 @@ async def get_available_products(current_user: dict = Depends(get_current_user_o
         print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
 
+@app.get("/api/products/search")
+async def search_products(
+    q: str = None,  # Query para busca por nome ou artista
+    country: str = None,  # Filtro por país
+    stamp: str = None,  # Filtro por selo
+    release_year: int = None,  # Filtro por ano
+    current_user: dict = Depends(get_current_user_optional)
+):
+    """Buscar e filtrar produtos"""
+    user_id = current_user['id'] if current_user else "anônimo"
+    print(f"[DEBUG] Buscando produtos com filtros para usuário: {user_id}")
+    print(f"[DEBUG] Filtros: q={q}, country={country}, stamp={stamp}, release_year={release_year}")
+    
+    try:
+        # Construir query base com JOIN para artistas
+        query = supabase.table("products").select(
+            "*, artists(name, origin_country)"
+        )
+        
+        # Aplicar filtros diretos
+        if stamp:
+            query = query.eq("stamp", stamp)
+        if release_year:
+            query = query.eq("release_year", release_year)
+        
+        # Executar query
+        response = query.execute()
+        
+        products = response.data if response.data else []
+        print(f"[DEBUG] Produtos encontrados antes da busca: {len(products)}")
+        
+        # Processar produtos e aplicar filtros
+        processed_products = []
+        for product in products:
+            # Criar cópia do produto
+            processed_product = dict(product)
+            
+            # Adicionar artist_name se existir relacionamento
+            if product.get('artists'):
+                processed_product['artist_name'] = product['artists']['name']
+                processed_product['artist_country'] = product['artists']['origin_country']
+                artist_name = product['artists']['name']
+                artist_country = product['artists']['origin_country']
+            else:
+                processed_product['artist_name'] = 'Artista não encontrado'
+                processed_product['artist_country'] = '-'
+                artist_name = 'Artista não encontrado'
+                artist_country = '-'
+            
+            # Filtro por país do artista
+            if country and artist_country.lower() != country.lower():
+                continue
+            
+            # Aplicar busca por texto (nome do produto ou artista)
+            if q:
+                search_text = q.lower()
+                product_name = product.get('name', '').lower()
+                if search_text not in product_name and search_text not in artist_name.lower():
+                    continue
+            
+            # Remover o objeto artists aninhado
+            if 'artists' in processed_product:
+                del processed_product['artists']
+            processed_products.append(processed_product)
+        
+        print(f"[DEBUG] Produtos retornados após filtros: {len(processed_products)}")
+        return processed_products
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
+
+@app.get("/api/products/filters")
+async def get_product_filters(current_user: dict = Depends(get_current_user_optional)):
+    """Obter filtros disponíveis para produtos"""
+    try:
+        # Buscar produtos para extrair filtros únicos
+        response = supabase.table("products").select("stamp, release_year").execute()
+        
+        products = response.data if response.data else []
+        
+        # Extrair valores únicos
+        stamps = list(set([p['stamp'] for p in products if p.get('stamp')]))
+        release_years = list(set([p['release_year'] for p in products if p.get('release_year')]))
+        
+        # Ordenar
+        stamps.sort()
+        release_years.sort(reverse=True)  # Anos mais recentes primeiro
+        
+        return {
+            "stamps": stamps,
+            "release_years": release_years
+        }
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar filtros: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar filtros: {str(e)}")
+
 class ProductCreate(BaseModel):
     name: str
     artist_id: int  # Mudança: agora referencia o ID do artista
@@ -436,7 +534,7 @@ class ProductUpdate(BaseModel):
     remaining: int
     reference_code: str = ""
     stamp: str = ""
-    release_year: int = None
+    release_year: int = Form(None)
     country: str = ""
 
 @app.put("/api/products/{product_id}")
@@ -1448,33 +1546,6 @@ async def get_user_orders(
         print(f"Erro ao buscar pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {str(e)}")
     
-    result = []
-    for order in orders:
-        order_products = db.query(OrderProduct, Product).join(Product).filter(
-            OrderProduct.order_id == order.id
-        ).all()
-        
-        products = []
-        total_value = 0
-        for order_product, product in order_products:
-            products.append({
-                "name": product.name,
-                "artist": product.artist,
-                "quantity": order_product.quantity,
-                "valor": product.valor
-            })
-            total_value += product.valor * order_product.quantity
-        
-        result.append({
-            "id": order.id,
-            "order_date": order.order_date.isoformat(),
-            "pending": order.pending,
-            "active": order.active,
-            "products": products,
-            "total_value": total_value
-        })
-    
-    return result
 
 # ===== ENDPOINTS DE ADMINISTRAÇÃO =====
 
@@ -1634,398 +1705,6 @@ async def create_usuario(
     except Exception as e:
         print(f"[DEBUG] Erro ao criar usuário: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao criar usuário: {str(e)}")
-
-@app.put("/api/usuarios/{user_id}")
-async def update_usuario(
-    user_id: str,
-    usuario: UsuarioUpdate,
-    current_user: dict = Depends(get_current_admin_user)
-):
-    """Atualizar usuário (apenas admin)"""
-    try:
-        print(f"[DEBUG] Atualizando usuário: {user_id}")
-        
-        # Atualizar na tabela users
-        response = supabase.table("users").update({
-            "usuario": usuario.username,
-            "is_admin": usuario.is_admin
-        }).eq("id", user_id).execute()
-        
-        if response.data:
-            return {"message": "Usuário atualizado com sucesso", "user": response.data[0]}
-        else:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
-            
-    except Exception as e:
-        print(f"[DEBUG] Erro ao atualizar usuário: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar usuário: {str(e)}")
-
-@app.delete("/api/usuarios/{user_id}")
-async def delete_usuario(
-    user_id: str,
-    current_user: dict = Depends(get_current_admin_user)
-):
-    """Deletar usuário (apenas admin)"""
-    try:
-        print(f"[DEBUG] Deletando usuário: {user_id}")
-        
-        # Buscar usuário primeiro para obter nome
-        user_response = supabase.table("users").select("*").eq("id", user_id).execute()
-        
-        if not user_response.data:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
-        
-        user = user_response.data[0]
-        
-        # Deletar da tabela users
-        delete_response = supabase.table("users").delete().eq("id", user_id).execute()
-        
-        # Tentar deletar do Supabase Auth (pode falhar se o usuário não existir mais)
-        try:
-            supabase.auth.admin.delete_user(user_id)
-        except Exception as auth_error:
-            print(f"[DEBUG] Erro ao deletar do Auth (ignorado): {str(auth_error)}")
-        
-        return {"message": f"Usuário '{user.get('usuario', user_id)}' deletado com sucesso"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[DEBUG] Erro ao deletar usuário: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao deletar usuário: {str(e)}")
-
-@app.post("/api/register")
-async def register_usuario(
-    usuario: UsuarioCreate
-):
-    """Registrar novo usuário (público)"""
-    try:
-        print(f"[DEBUG] Registrando usuário: {usuario.email}")
-        
-        # Criar usuário no Supabase Auth
-        auth_response = supabase.auth.sign_up({
-            "email": usuario.email,
-            "password": usuario.password,
-            "options": {
-                "data": {
-                    "username": usuario.username,
-                    "is_admin": False  # Usuários cadastrados pelo público não são admin
-                }
-            }
-        })
-        
-        if auth_response.user:
-            # Criar entrada na tabela users incluindo o email
-            user_data = {
-                "id": auth_response.user.id,
-                "usuario": usuario.username or usuario.email.split('@')[0],  # Se não tiver username, usar parte do email
-                "email": usuario.email,
-                "is_admin": False  # Usuários cadastrados pelo público não são admin
-            }
-            
-            table_response = supabase.table("users").insert(user_data).execute()
-            
-            return {
-                "message": "Usuário registrado com sucesso! Verifique seu email para confirmar a conta.",
-                "user": {
-                    "id": auth_response.user.id,
-                    "email": auth_response.user.email,
-                    "username": usuario.username
-                }
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Erro ao registrar usuário no Supabase Auth")
-            
-    except Exception as e:
-        print(f"[DEBUG] Erro ao registrar usuário: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao registrar usuário: {str(e)}")
-
-# ===== ENDPOINT TEMPORÁRIO PARA DEBUG =====
-
-@app.get("/api/debug/user")
-async def debug_user(current_user: dict = Depends(get_current_user)):
-    """Debug: verificar dados do usuário atual"""
-    try:
-        print(f"[DEBUG] Verificando usuário: {current_user['id']}")
-        
-        # Tentar buscar diretamente no Supabase
-        user_response = supabase.table("users").select("*").eq("id", current_user['id']).execute()
-        print(f"[DEBUG] Resposta da busca: {user_response}")
-        
-        return {
-            "current_user": current_user,
-            "supabase_query": user_response.data,
-            "found_in_table": len(user_response.data) > 0,
-            "is_admin": user_response.data[0].get("is_admin") if user_response.data else False
-        }
-    except Exception as e:
-        print(f"[DEBUG] Erro no debug: {str(e)}")
-        return {"error": str(e), "current_user": current_user}
-
-# ===== FIM DO DEBUG =====
-
-# Endpoint para verificar estrutura das tabelas (apenas para debug)
-@app.get("/api/debug/check_tables")
-def debug_check_tables(db: Session = Depends(get_db_session)):
-    """Verifica se as tabelas existem"""
-    try:
-        # Testar se consegue fazer query nas tabelas
-        users_count = db.query(User).count()
-        products_count = db.query(Product).count()
-        
-        try:
-            carts_count = db.query(ShoppingCart).count()
-        except Exception as e:
-            carts_count = f"ERRO: {str(e)}"
-        
-        try:
-            cart_products_count = db.query(ShoppingCartProduct).count()
-        except Exception as e:
-            cart_products_count = f"ERRO: {str(e)}"
-        
-        return {
-            "users": users_count,
-            "products": products_count,
-            "shopping_carts": carts_count,
-            "cart_products": cart_products_count
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-# ===== ENDPOINTS DE DEBUG PARA PRODUÇÃO =====
-
-@app.get("/api/debug/test_supabase_connection")
-async def debug_test_supabase_connection(current_user: dict = Depends(get_current_user)):
-    """Testar conexão com Supabase em produção"""
-    try:
-        print('[DEBUG PRODUÇÃO] Testando conexão com Supabase...')
-        
-        # Testar busca simples
-        products_response = supabase.table("products").select("id, name").limit(1).execute()
-        print(f'[DEBUG] Produtos response: {products_response}')
-        
-        # Testar busca de usuário
-        user_response = supabase.table("users").select("*").eq("id", current_user['id']).execute()
-        print(f'[DEBUG] User response: {user_response}')
-        
-        # Testar busca de carrinho
-        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", current_user['id']).execute()
-        print(f'[DEBUG] Cart response: {cart_response}')
-        
-        return {
-            "environment": "production" if "herokuapp" in str(os.environ.get("REQUEST_URI", "")) else "local",
-            "user_id": current_user['id'],
-            "products_count": len(products_response.data) if products_response.data else 0,
-            "user_found": len(user_response.data) > 0 if user_response.data else False,
-            "cart_found": len(cart_response.data) > 0 if cart_response.data else False,
-            "supabase_url": os.environ.get("SUPABASE_URL", "NOT_SET")[:50] + "...",
-            "supabase_key": "SET" if os.environ.get("SUPABASE_KEY") else "NOT_SET"
-        }
-        
-    except Exception as e:
-        print(f'[DEBUG] Erro no teste de conexão: {str(e)}')
-        import traceback
-        traceback.print_exc()
-        return {"error": str(e), "traceback": traceback.format_exc()}
-
-@app.post("/api/debug/test_cart_creation")
-async def debug_test_cart_creation(current_user: dict = Depends(get_current_user)):
-    """Testar criação de carrinho especificamente"""
-    try:
-        print('[DEBUG PRODUÇÃO] Testando criação de carrinho...')
-        
-        user_id = current_user["id"]
-        print(f'[DEBUG] User ID: {user_id}')
-        
-        # Verificar se carrinho já existe
-        existing_cart = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
-        print(f'[DEBUG] Carrinho existente: {existing_cart}')
-        
-        if existing_cart.data:
-            return {
-                "message": "Carrinho já existe",
-                "cart": existing_cart.data[0],
-                "environment": "production" if "herokuapp" in str(os.environ.get("REQUEST_URI", "")) else "local"
-            }
-        
-        # Tentar criar carrinho
-        cart_data = {"user_id": user_id}
-        print(f'[DEBUG] Dados do carrinho: {cart_data}')
-        
-        create_response = supabase.table("shoppingcarts").insert(cart_data).execute()
-        print(f'[DEBUG] Response da criação: {create_response}')
-        
-        return {
-            "message": "Carrinho criado com sucesso",
-            "cart": create_response.data[0] if create_response.data else None,
-            "environment": "production" if "herokuapp" in str(os.environ.get("REQUEST_URI", "")) else "local"
-        }
-        
-    except Exception as e:
-        print(f'[DEBUG] Erro na criação do carrinho: {str(e)}')
-        import traceback
-        traceback.print_exc()
-        return {"error": str(e), "traceback": traceback.format_exc()}
-
-@app.get("/api/debug/test_cart_detailed")
-async def debug_test_cart_detailed(current_user: dict = Depends(get_current_user)):
-    """Debug detalhado do carrinho em produção"""
-    try:
-        print('[DEBUG CARRINHO] Iniciando teste detalhado...')
-        
-        user_id = current_user["id"]
-        print(f'[DEBUG] User ID: {user_id}')
-        
-        # Testar se consegue acessar tabela shoppingcarts
-        try:
-            cart_search = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
-            print(f'[DEBUG] Cart search response: {cart_search}')
-        except Exception as cart_error:
-            print(f'[DEBUG] Erro ao buscar carrinho: {str(cart_error)}')
-            cart_search = {"error": str(cart_error), "data": None}
-        
-        # Testar criar carrinho se não existir
-        cart_creation_result = None
-        if not cart_search.get("data"):
-            try:
-                cart_data = {"user_id": user_id}
-                cart_creation = supabase.table("shoppingcarts").insert(cart_data).execute()
-                print(f'[DEBUG] Cart creation response: {cart_creation}')
-                cart_creation_result = cart_creation
-            except Exception as create_error:
-                print(f'[DEBUG] Erro ao criar carrinho: {str(create_error)}')
-                cart_creation_result = {"error": str(create_error)}
-        
-        # Testar buscar produtos do carrinho
-        cart_products_result = None
-        if cart_search.get("data") or cart_creation_result:
-            try:
-                cart_id = cart_search["data"][0]["id"] if cart_search.get("data") else cart_creation_result["data"][0]["id"]
-                cart_products = supabase.table("shoppingcart_products").select("*, product:products(*)").eq("shoppingcart_id", cart_id).execute()
-                print(f'[DEBUG] Cart products response: {cart_products}')
-                cart_products_result = cart_products
-            except Exception as products_error:
-                print(f'[DEBUG] Erro ao buscar produtos do carrinho: {str(products_error)}')
-                cart_products_result = {"error": str(products_error)}
-        
-        return {
-            "user_id": user_id,
-            "cart_search": cart_search,
-            "cart_creation": cart_creation_result,
-            "cart_products": cart_products_result,
-            "environment": "production" if "herokuapp" in str(os.environ.get("HTTP_HOST", "")) else "local"
-        }
-        
-    except Exception as e:
-        print(f'[DEBUG] Erro geral no teste: {str(e)}')
-        import traceback
-        traceback.print_exc()
-        return {"error": str(e), "traceback": traceback.format_exc()}
-
-@app.get("/api/debug/test_user_email/{user_id}")
-async def debug_test_user_email(
-    user_id: str,
-    current_user: dict = Depends(get_current_admin_user)
-):
-    """Debug: testar busca de email específico"""
-    try:
-        print(f"[DEBUG] Testando busca de email para usuário: {user_id}")
-        
-        # Método 1: Admin API
-        try:
-            auth_response = supabase.auth.admin.get_user_by_id(user_id)
-            print(f"[DEBUG] Admin API response: {auth_response}")
-            
-            if auth_response and hasattr(auth_response, 'user') and auth_response.user:
-                email_admin = auth_response.user.email
-                print(f"[DEBUG] Email via Admin API: {email_admin}")
-            else:
-                email_admin = "N/A - Admin API failed"
-        except Exception as e:
-            email_admin = f"ERRO Admin API: {str(e)}"
-            print(f"[DEBUG] Erro Admin API: {str(e)}")
-        
-        # Método 2: Buscar na tabela users
-        try:
-            user_response = supabase.table("users").select("*").eq("id", user_id).execute()
-            print(f"[DEBUG] User table response: {user_response}")
-            user_data = user_response.data[0] if user_response.data else None
-        except Exception as e:
-            user_data = f"ERRO User table: {str(e)}"
-            print(f"[DEBUG] Erro User table: {str(e)}")
-        
-        return {
-            "user_id": user_id,
-            "email_admin_api": email_admin,
-            "user_table_data": user_data,
-            "supabase_url": os.environ.get("SUPABASE_URL", "NOT_SET")[:50] + "...",
-            "has_service_key": bool(os.environ.get("SUPABASE_SERVICE_KEY"))
-        }
-        
-    except Exception as e:
-        print(f"[DEBUG] Erro geral: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return {"error": str(e), "traceback": traceback.format_exc()}
-
-# ===== ENDPOINTS DE PEDIDOS SUPABASE =====
-
-
-@app.get("/api/my_orders")
-async def get_my_orders(
-    current_user: dict = Depends(get_current_user)
-):
-    """Obter pedidos do usuário logado"""
-    try:
-        user_id = current_user["id"]
-        print(f"[DEBUG] Buscando pedidos para usuário: {user_id}")
-        
-        # Buscar pedidos do usuário
-        orders_response = supabase.table("orders").select("*").eq("user_id", user_id).order("order_date", desc=True).execute()
-        
-        if not orders_response.data:
-            return []
-        
-        orders = orders_response.data
-        print(f"[DEBUG] Pedidos encontrados: {len(orders)}")
-        
-        # Para cada pedido, buscar os produtos
-        result = []
-        for order in orders:
-            order_products_response = supabase.table("order_products").select("*, products(*, artists(name))").eq("order_id", order["id"]).execute()
-            
-            products = []
-            if order_products_response.data:
-                for op in order_products_response.data:
-                    # Buscar nome do artista
-                    artist_name = "Artista não informado"
-                    if op["products"]["artists"]:
-                        artist_name = op["products"]["artists"]["name"]
-                    
-                    products.append({
-                        "id": op["products"]["id"],
-                        "name": op["products"]["name"],
-                        "artist": artist_name,
-                        "valor": op["products"]["valor"],
-                        "quantity": op["quantity"],
-                        "image_path": op["products"]["image_path"]
-                    })
-            
-            result.append({
-                "id": order["id"],
-                "order_date": order["order_date"],
-                "total_amount": order["total_amount"],
-                "pending": order["pending"],
-                "active": order["active"],
-                "payment_link": order["payment_link"],
-                "products": products
-            })
-        
-        return result
-        
-    except Exception as e:
-        print(f"[DEBUG] Erro ao buscar pedidos: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {str(e)}")
 
 @app.get("/api/admin/all_orders")
 async def get_all_orders_admin(

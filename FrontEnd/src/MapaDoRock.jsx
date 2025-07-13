@@ -7,10 +7,14 @@ const MapaDoRock = () => {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [progBandsByCountry, setProgBandsByCountry] = useState({});
   const [loadingArtists, setLoadingArtists] = useState(true);
+  const [loadingMap, setLoadingMap] = useState(true);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const geoLayerRef = useRef(null);
   const isLoadingRef = useRef(false);
+
+  // Detectar se é dispositivo móvel
+  const isMobile = window.innerWidth <= 768;
 
   // Buscar artistas da API
   const fetchArtists = async () => {
@@ -370,7 +374,7 @@ const MapaDoRock = () => {
     // Criar uma flag local para este useEffect específico
     let isCurrentEffectActive = true;
     let initializationAttempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 10; // Aumentar tentativas para mobile
     
     console.log('=== DEBUG MAP INITIALIZATION ===');
     
@@ -388,7 +392,7 @@ const MapaDoRock = () => {
       if (!mapRef.current) {
         console.log('mapRef.current não está disponível ainda');
         if (initializationAttempts < maxAttempts) {
-          setTimeout(initializeMap, 200 * initializationAttempts);
+          setTimeout(initializeMap, 300 * initializationAttempts); // Aumentar delay para mobile
         }
         return;
       }
@@ -409,49 +413,95 @@ const MapaDoRock = () => {
         if (rect.width === 0 || rect.height === 0) {
           console.log('Container ainda não tem dimensões, tentando novamente...');
           if (initializationAttempts < maxAttempts) {
-            setTimeout(initializeMap, 300 * initializationAttempts);
+            setTimeout(initializeMap, 400 * initializationAttempts); // Aumentar delay para mobile
           }
           return;
+        }
+        
+        // Forçar dimensões mínimas no mobile
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile && rect.height < 300) {
+          container.style.height = '350px';
+          console.log('Forçando altura mínima para mobile');
         }
         
         // Limpar qualquer conteúdo anterior do container
         container.innerHTML = '';
         
-        // Inicializar o mapa
-        const map = L.map(container, {
+        // Configurações específicas para mobile
+        const mapOptions = {
           center: [20, 0],
-          zoom: 2,
-          minZoom: 2,
-          maxZoom: 6,
+          zoom: isMobile ? 1 : 2, // Zoom menor no mobile
+          minZoom: 1,
+          maxZoom: isMobile ? 4 : 6, // Menos zoom no mobile
           worldCopyJump: true,
           maxBounds: [[-90, -180], [90, 180]],
-          preferCanvas: false,
+          preferCanvas: true, // Melhor performance no mobile
           zoomControl: true,
-          attributionControl: true
-        });
+          attributionControl: true,
+          // Configurações específicas para touch
+          tap: true,
+          tapTolerance: 15,
+          touchZoom: true,
+          bounceAtZoomLimits: false,
+          zoomSnap: 0.5,
+          zoomDelta: 0.5
+        };
+        
+        // Inicializar o mapa
+        const map = L.map(container, mapOptions);
 
         console.log('Mapa criado:', map);
 
-        // Forçar invalidateSize para garantir que o mapa tenha o tamanho correto
-        setTimeout(() => {
+        // Múltiplos invalidateSize para garantir dimensões corretas
+        const invalidateMapSize = () => {
           if (map && isCurrentEffectActive) {
             map.invalidateSize();
             console.log('InvalidateSize executado');
           }
-        }, 100);
+        };
 
-        // Adicionar layer do mapa com estilo dark e fallback
-        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-          attribution: '© OpenStreetMap contributors © CARTO',
-          subdomains: 'abcd',
-          maxZoom: 19,
-          errorTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' // Fallback
-        });
+        // Forçar invalidateSize múltiplas vezes
+        setTimeout(invalidateMapSize, 100);
+        setTimeout(invalidateMapSize, 300);
+        setTimeout(invalidateMapSize, 600);
 
-        // Adicionar listeners para debug
+        // Adicionar layer do mapa com múltiplos fallbacks
+        const tileUrls = [
+          'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png'
+        ];
+        
+        let currentUrlIndex = 0;
+        
+        const createTileLayer = (urlIndex = 0) => {
+          return L.tileLayer(tileUrls[urlIndex], {
+            attribution: urlIndex === 0 ? '© OpenStreetMap contributors © CARTO' : '© OpenStreetMap contributors',
+            subdomains: urlIndex === 0 ? 'abcd' : 'abc',
+            maxZoom: 19,
+            timeout: 10000 // Timeout de 10 segundos
+          });
+        };
+
+        const tileLayer = createTileLayer(currentUrlIndex);
+
+        // Adicionar listeners para debug e fallback
         tileLayer.on('loading', () => console.log('Tiles começaram a carregar'));
         tileLayer.on('load', () => console.log('Tiles carregaram'));
-        tileLayer.on('tileerror', (e) => console.log('Erro ao carregar tile:', e));
+        tileLayer.on('tileerror', (e) => {
+          console.log('Erro ao carregar tile:', e);
+          
+          // Tentar próximo URL em caso de erro
+          if (currentUrlIndex < tileUrls.length - 1) {
+            currentUrlIndex++;
+            console.log(`Tentando URL de fallback ${currentUrlIndex}: ${tileUrls[currentUrlIndex]}`);
+            
+            map.removeLayer(tileLayer);
+            const fallbackLayer = createTileLayer(currentUrlIndex);
+            fallbackLayer.addTo(map);
+          }
+        });
 
         tileLayer.addTo(map);
         console.log('Tile layer adicionado');
@@ -463,13 +513,14 @@ const MapaDoRock = () => {
         map.whenReady(() => {
           console.log('Mapa pronto!');
           
-          // Forçar outro invalidateSize após estar pronto
+          // Forçar invalidateSize após estar pronto
+          setTimeout(invalidateMapSize, 200);
+          setTimeout(invalidateMapSize, 500);
+          
+          // Marcar mapa como carregado
           setTimeout(() => {
-            if (map && isCurrentEffectActive) {
-              map.invalidateSize();
-              console.log('Segundo invalidateSize executado');
-            }
-          }, 200);
+            setLoadingMap(false);
+          }, 1000);
           
           // Verificar se este useEffect ainda está ativo
           if (isCurrentEffectActive && !geoLayerRef.current) {
@@ -478,39 +529,59 @@ const MapaDoRock = () => {
               if (isCurrentEffectActive && !geoLayerRef.current) {
                 loadGeoData(map);
               }
-            }, 500);
+            }, isMobile ? 1000 : 500); // Mais delay no mobile
           }
         });
         
-        // Adicionar um listener para resize da janela
+        // Adicionar um listener para resize da janela e orientação
         const handleResize = () => {
           if (map && isCurrentEffectActive) {
-            setTimeout(() => map.invalidateSize(), 100);
+            setTimeout(invalidateMapSize, 100);
+          }
+        };
+        
+        const handleOrientationChange = () => {
+          if (map && isCurrentEffectActive) {
+            setTimeout(() => {
+              invalidateMapSize();
+              // Re-centralizar no mobile após rotação
+              if (window.innerWidth <= 768) {
+                map.setView([20, 0], window.innerWidth <= 480 ? 1 : 2);
+              }
+              // Força uma atualização completa do mapa
+              setTimeout(() => {
+                invalidateMapSize();
+                console.log('Mapa atualizado após mudança de orientação');
+              }, 500);
+            }, 500);
           }
         };
         
         window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleOrientationChange);
         
-        // Salvar a função de cleanup do resize
+        // Salvar as funções de cleanup
         map._resizeHandler = handleResize;
+        map._orientationHandler = handleOrientationChange;
         
       } catch (error) {
         console.error('Erro ao inicializar mapa:', error);
         
         // Tentar novamente se houver erro
         if (initializationAttempts < maxAttempts) {
-          console.log('Tentando novamente em 1 segundo...');
-          setTimeout(initializeMap, 1000);
+          console.log('Tentando novamente em 2 segundos...');
+          setTimeout(initializeMap, 2000);
         }
       }
     };
 
-    // Aguardar um pouco para garantir que o DOM esteja completamente pronto
+    // Aguardar mais tempo no mobile para garantir que o DOM esteja pronto
+    const isMobile = window.innerWidth <= 768;
     const initialDelay = setTimeout(() => {
       if (isCurrentEffectActive) {
         initializeMap();
       }
-    }, 100);
+    }, isMobile ? 300 : 100);
 
     return () => {
       // Marcar que este useEffect não está mais ativo
@@ -522,9 +593,12 @@ const MapaDoRock = () => {
       
       if (mapInstanceRef.current) {
         try {
-          // Remover listener de resize se existir
+          // Remover listeners se existirem
           if (mapInstanceRef.current._resizeHandler) {
             window.removeEventListener('resize', mapInstanceRef.current._resizeHandler);
+          }
+          if (mapInstanceRef.current._orientationHandler) {
+            window.removeEventListener('orientationchange', mapInstanceRef.current._orientationHandler);
           }
           
           // Remover camada GeoJSON se existir
@@ -557,12 +631,17 @@ const MapaDoRock = () => {
   return (
     <div className="mapa-do-rock-container">
       <h1>Mapa do Rock Progressivo</h1>
-      {loadingArtists && (
+      {(loadingArtists || loadingMap) && (
         <div className="loading-indicator">
-          <p>Carregando artistas da base de dados...</p>
+          <p>
+            {loadingArtists ? 'Carregando artistas da base de dados...' : 
+             loadingMap ? (isMobile ? 'Carregando mapa (pode levar alguns segundos no mobile)...' : 'Carregando mapa...') :
+             'Carregando...'}
+          </p>
         </div>
       )}
-      <div className="mapa-content">{!loadingArtists && (
+      <div className="mapa-content">
+        {!loadingArtists && (
         <>
         {/* Sidebar esquerda com bandas */}
         <div className="bands-sidebar">
@@ -591,7 +670,7 @@ const MapaDoRock = () => {
               <p>Clique em um país destacado no mapa para descobrir suas maiores bandas de rock progressivo!</p>
               <div className="instruction">
                 <span className="click-icon">👆</span>
-                <span>Países em <strong style={{color: '#8B1538'}}>vermelho</strong> possuem dados de bandas prog. Use o mouse para navegar pelo mapa 360°!</span>
+                <span>Países em <strong style={{color: '#8B1538'}}>vermelho</strong> possuem dados de bandas prog. {isMobile ? 'Toque' : 'Use o mouse'} para navegar pelo mapa 360°!</span>
               </div>
               <div className="map-legend">
                 <h4>Legenda:</h4>
@@ -610,9 +689,23 @@ const MapaDoRock = () => {
 
         {/* Mapa mundial real */}
         <div className="world-map-real">
+          {loadingMap && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              color: '#8B1538',
+              fontSize: '18px',
+              fontWeight: 'bold'
+            }}>
+              {isMobile ? 'Carregando mapa para mobile...' : 'Carregando mapa...'}
+            </div>
+          )}
           <div 
             ref={mapRef} 
             className="leaflet-map"
+            style={{ opacity: loadingMap ? 0 : 1, transition: 'opacity 0.5s ease' }}
           />
         </div>
         </>

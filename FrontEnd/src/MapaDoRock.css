@@ -142,12 +142,15 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   border: 2px solid #90caf9;
   overflow: hidden;
+  min-height: 400px; /* Garantir altura mínima */
 }
 
 .leaflet-map {
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 350px !important; /* Altura mínima específica */
   border-radius: 15px !important;
+  position: relative !important; /* Importante para Leaflet */
   z-index: 1;
 }
 
@@ -304,10 +307,12 @@
   
   .mapa-content {
     gap: 20px;
+    min-height: 400px; /* Altura mínima para o container */
   }
   
   .bands-sidebar {
     padding: 20px;
+    max-height: 300px; /* Reduzir altura da sidebar no mobile */
   }
   
   .country-bands h2 {
@@ -323,8 +328,14 @@
   }
   
   .world-map-real {
-    height: 400px;
+    height: 400px !important; /* Altura fixa para mobile */
+    min-height: 400px !important;
     padding: 8px;
+  }
+  
+  .leaflet-map {
+    min-height: 380px !important; /* Garantir altura no mobile */
+    height: 380px !important;
   }
   
   .reset-btn {
@@ -340,6 +351,7 @@
   
   .bands-sidebar {
     padding: 15px;
+    max-height: 250px; /* Ainda menor no mobile pequeno */
   }
   
   .band-card {
@@ -347,8 +359,14 @@
   }
   
   .world-map-real {
-    height: 350px;
+    height: 350px !important; /* Altura específica para telas pequenas */
+    min-height: 350px !important;
     padding: 5px;
+  }
+  
+  .leaflet-map {
+    min-height: 330px !important;
+    height: 330px !important;
   }
   
   .instruction {
@@ -363,6 +381,23 @@
   
   .legend-item {
     font-size: 0.8rem;
+  }
+  
+  /* Ajustar controles do Leaflet no mobile */
+  .leaflet-control-zoom {
+    font-size: 18px !important;
+  }
+  
+  .leaflet-control-zoom a {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+  }
+  
+  /* Melhorar tooltips no mobile */
+  .leaflet-tooltip {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
   }
 }
 
