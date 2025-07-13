@@ -369,86 +369,170 @@ const MapaDoRock = () => {
   useEffect(() => {
     // Criar uma flag local para este useEffect específico
     let isCurrentEffectActive = true;
-    console.log('=== DEBUG MAP INITIALIZATION ===');
-    console.log('mapRef.current:', mapRef.current);
-    console.log('mapInstanceRef.current:', mapInstanceRef.current);
+    let initializationAttempts = 0;
+    const maxAttempts = 5;
     
-    // Aguardar um pouco para garantir que o DOM esteja pronto
+    console.log('=== DEBUG MAP INITIALIZATION ===');
+    
     const initializeMap = () => {
-      if (mapRef.current && !mapInstanceRef.current && isCurrentEffectActive) {
+      initializationAttempts++;
+      console.log(`Tentativa de inicialização ${initializationAttempts}/${maxAttempts}`);
+      console.log('mapRef.current:', mapRef.current);
+      console.log('mapInstanceRef.current:', mapInstanceRef.current);
+      
+      if (!isCurrentEffectActive) {
+        console.log('Effect não está mais ativo, cancelando inicialização');
+        return;
+      }
+      
+      if (!mapRef.current) {
+        console.log('mapRef.current não está disponível ainda');
+        if (initializationAttempts < maxAttempts) {
+          setTimeout(initializeMap, 200 * initializationAttempts);
+        }
+        return;
+      }
+      
+      if (mapInstanceRef.current) {
+        console.log('Mapa já foi inicializado');
+        return;
+      }
+      
+      try {
         console.log('Inicializando mapa...');
         
-        try {
-          // Inicializar o mapa
-          const map = L.map(mapRef.current, {
-            center: [20, 0],
-            zoom: 2,
-            minZoom: 2,
-            maxZoom: 6,
-            worldCopyJump: true,
-            maxBounds: [[-90, -180], [90, 180]]
-          });
-
-          console.log('Mapa criado:', map);
-
-          // Adicionar layer do mapa com estilo dark
-          const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap contributors © CARTO',
-            subdomains: 'abcd',
-            maxZoom: 19
-          });
-
-          tileLayer.addTo(map);
-          console.log('Tile layer adicionado');
-          
-          mapInstanceRef.current = map;
-          console.log('Map instance ref definido');
-
-          // Aguardar o mapa e tiles carregarem antes de adicionar dados
-          map.whenReady(() => {
-            console.log('Mapa pronto!');
-            // Verificar se este useEffect ainda está ativo
-            if (isCurrentEffectActive && !geoLayerRef.current) {
-              setTimeout(() => {
-                console.log('Iniciando carregamento dos dados geográficos...');
-                if (isCurrentEffectActive && !geoLayerRef.current) {
-                  loadGeoData(map);
-                }
-              }, 500);
-            }
-          });
-        } catch (error) {
-          console.error('Erro ao inicializar mapa:', error);
+        // Verificar se o container está visível
+        const container = mapRef.current;
+        const rect = container.getBoundingClientRect();
+        console.log('Container dimensions:', { width: rect.width, height: rect.height });
+        
+        if (rect.width === 0 || rect.height === 0) {
+          console.log('Container ainda não tem dimensões, tentando novamente...');
+          if (initializationAttempts < maxAttempts) {
+            setTimeout(initializeMap, 300 * initializationAttempts);
+          }
+          return;
         }
-      } else {
-        console.log('Mapa não inicializado - condições:', {
-          'mapRef.current': !!mapRef.current,
-          'mapInstanceRef.current': !!mapInstanceRef.current,
-          'isCurrentEffectActive': isCurrentEffectActive
+        
+        // Limpar qualquer conteúdo anterior do container
+        container.innerHTML = '';
+        
+        // Inicializar o mapa
+        const map = L.map(container, {
+          center: [20, 0],
+          zoom: 2,
+          minZoom: 2,
+          maxZoom: 6,
+          worldCopyJump: true,
+          maxBounds: [[-90, -180], [90, 180]],
+          preferCanvas: false,
+          zoomControl: true,
+          attributionControl: true
         });
+
+        console.log('Mapa criado:', map);
+
+        // Forçar invalidateSize para garantir que o mapa tenha o tamanho correto
+        setTimeout(() => {
+          if (map && isCurrentEffectActive) {
+            map.invalidateSize();
+            console.log('InvalidateSize executado');
+          }
+        }, 100);
+
+        // Adicionar layer do mapa com estilo dark e fallback
+        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap contributors © CARTO',
+          subdomains: 'abcd',
+          maxZoom: 19,
+          errorTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' // Fallback
+        });
+
+        // Adicionar listeners para debug
+        tileLayer.on('loading', () => console.log('Tiles começaram a carregar'));
+        tileLayer.on('load', () => console.log('Tiles carregaram'));
+        tileLayer.on('tileerror', (e) => console.log('Erro ao carregar tile:', e));
+
+        tileLayer.addTo(map);
+        console.log('Tile layer adicionado');
+        
+        mapInstanceRef.current = map;
+        console.log('Map instance ref definido');
+
+        // Aguardar o mapa e tiles carregarem
+        map.whenReady(() => {
+          console.log('Mapa pronto!');
+          
+          // Forçar outro invalidateSize após estar pronto
+          setTimeout(() => {
+            if (map && isCurrentEffectActive) {
+              map.invalidateSize();
+              console.log('Segundo invalidateSize executado');
+            }
+          }, 200);
+          
+          // Verificar se este useEffect ainda está ativo
+          if (isCurrentEffectActive && !geoLayerRef.current) {
+            setTimeout(() => {
+              console.log('Iniciando carregamento dos dados geográficos...');
+              if (isCurrentEffectActive && !geoLayerRef.current) {
+                loadGeoData(map);
+              }
+            }, 500);
+          }
+        });
+        
+        // Adicionar um listener para resize da janela
+        const handleResize = () => {
+          if (map && isCurrentEffectActive) {
+            setTimeout(() => map.invalidateSize(), 100);
+          }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Salvar a função de cleanup do resize
+        map._resizeHandler = handleResize;
+        
+      } catch (error) {
+        console.error('Erro ao inicializar mapa:', error);
+        
+        // Tentar novamente se houver erro
+        if (initializationAttempts < maxAttempts) {
+          console.log('Tentando novamente em 1 segundo...');
+          setTimeout(initializeMap, 1000);
+        }
       }
     };
 
-    // Tentar inicializar imediatamente
-    initializeMap();
-    
-    // Se não conseguir, tentar após um pequeno delay
-    if (!mapInstanceRef.current) {
-      setTimeout(initializeMap, 100);
-    }
+    // Aguardar um pouco para garantir que o DOM esteja completamente pronto
+    const initialDelay = setTimeout(() => {
+      if (isCurrentEffectActive) {
+        initializeMap();
+      }
+    }, 100);
 
     return () => {
       // Marcar que este useEffect não está mais ativo
       isCurrentEffectActive = false;
       console.log('Cleanup do mapa');
       
+      // Limpar timeout se ainda estiver pendente
+      clearTimeout(initialDelay);
+      
       if (mapInstanceRef.current) {
         try {
+          // Remover listener de resize se existir
+          if (mapInstanceRef.current._resizeHandler) {
+            window.removeEventListener('resize', mapInstanceRef.current._resizeHandler);
+          }
+          
           // Remover camada GeoJSON se existir
           if (geoLayerRef.current) {
             mapInstanceRef.current.removeLayer(geoLayerRef.current);
             geoLayerRef.current = null;
           }
+          
           mapInstanceRef.current.remove();
         } catch (error) {
           console.log('Erro ao remover mapa:', error);
