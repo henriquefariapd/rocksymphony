@@ -407,7 +407,7 @@ function Home() {
             ))}
           </select>
 
-          <select
+          {/* <select
             value={countryFilter}
             onChange={(e) => setCountryFilter(e.target.value)}
             className="filter-select"
@@ -416,7 +416,7 @@ function Home() {
             {allCountries && allCountries.map(country => (
               <option key={country} value={country}>{country}</option>
             ))}
-          </select>
+          </select> */}
 
           <button onClick={clearFilters} className="clear-filters-btn">
             Limpar Filtros
