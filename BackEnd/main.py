@@ -2182,3 +2182,23 @@ async def update_order_status(
     except Exception as e:
         print(f"Erro ao atualizar status do pedido: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status do pedido: {str(e)}")
+
+# ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
+# Rota para servir o frontend React
+@app.get("/")
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str = None):
+    # Caminho para o arquivo index.html do frontend buildado
+    frontend_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "index.html"
+    
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
+    else:
+        # Fallback para desenvolvimento - retorna informações da API
+        return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
+
+# ===== FINAL DO ARQUIVO =====
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
