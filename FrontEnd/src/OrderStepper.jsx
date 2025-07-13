@@ -24,7 +24,7 @@ const OrderStepper = ({ pending, sent }) => {
     },
     {
       label: "Pedido à Transportadora",
-      description: "Produto enviado e a caminho",
+      description: "Produto já enviado e a caminho do seu endereço",
       icon: "🚚"
     }
   ];

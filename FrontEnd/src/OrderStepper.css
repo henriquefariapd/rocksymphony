@@ -1,8 +1,8 @@
 .order-stepper {
-  margin: 20px 0;
-  padding: 20px;
+  margin: 15px 0;
+  padding: 15px;
   background: #f8f9fa;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid #e9ecef;
 }
 
@@ -10,8 +10,7 @@
   display: flex;
   align-items: flex-start;
   position: relative;
-  max-width: 800px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .step-wrapper {
@@ -30,7 +29,7 @@
   transition: all 0.3s ease;
   background: white;
   border: 2px solid #e9ecef;
-  min-width: 200px;
+  width: 100%;
 }
 
 .step.active {
@@ -146,8 +145,8 @@
 
 @media (max-width: 480px) {
   .order-stepper {
-    margin: 15px 0;
-    padding: 15px;
+    margin: 10px 0;
+    padding: 12px;
   }
   
   .step {

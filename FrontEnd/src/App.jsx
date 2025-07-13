@@ -7,6 +7,7 @@ import Home from './Home';
 import ResetPassword from './ResetPassword';
 import axios from 'axios';
 import Header from './Header';
+import Footer from './Footer';
 import Produtos from './Produtos';
 import MeusPedidos from './MeusPedidos';
 import Pedidos from './Pedidos';
@@ -404,6 +405,8 @@ function AppContent() {
         <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
+      
+      <Footer />
     </>
   );
 }
