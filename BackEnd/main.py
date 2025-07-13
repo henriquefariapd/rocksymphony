@@ -37,12 +37,14 @@ try:
     from auth_routes import router as auth_router
     from auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
     from supabase_client import supabase
+    from shipping_calculator import ShippingCalculator
 except ImportError:
     try:
         # Tentativa para Heroku (import relativo)
         from .auth_routes import router as auth_router
         from .auth_supabase import get_current_user, get_current_admin_user, get_current_user_optional
         from .supabase_client import supabase
+        from .shipping_calculator import ShippingCalculator
     except ImportError:
         # Fallback final
         import sys
@@ -1010,6 +1012,52 @@ async def get_address_by_cep(cep: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar CEP: {str(e)}")
 
+@app.post("/api/calculate-shipping")
+async def calculate_shipping(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Calcular valor do frete baseado no CEP de destino"""
+    try:
+        destination_cep = data.get("cep")
+        if not destination_cep:
+            raise HTTPException(status_code=400, detail="CEP de destino é obrigatório")
+        
+        # Calcular peso total baseado nos produtos do carrinho
+        user_id = current_user["id"]
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        
+        if not cart_response.data:
+            raise HTTPException(status_code=404, detail="Carrinho não encontrado")
+        
+        cart_id = cart_response.data[0]["id"]
+        cart_products_response = supabase.table("shoppingcart_products").select(
+            "quantity"
+        ).eq("shoppingcart_id", cart_id).execute()
+        
+        # Peso aproximado por CD: 0.1kg, peso mínimo: 0.5kg
+        total_items = sum(item["quantity"] for item in cart_products_response.data) if cart_products_response.data else 0
+        total_weight = max(0.5, total_items * 0.1)
+        
+        # Calcular frete
+        shipping_cost = ShippingCalculator.calculate_shipping(destination_cep, total_weight)
+        delivery_days = ShippingCalculator.get_estimated_delivery_days(destination_cep)
+        
+        if shipping_cost is None:
+            raise HTTPException(status_code=400, detail="Não foi possível calcular o frete para este CEP")
+        
+        return {
+            "shipping_cost": shipping_cost,
+            "delivery_days": delivery_days,
+            "weight_kg": total_weight,
+            "origin_cep": ShippingCalculator.ORIGIN_CEP
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao calcular frete: {str(e)}")
+
 @app.post("/api/addresses")
 async def create_address(
     address: AddressCreate,
@@ -1422,6 +1470,8 @@ def create_order(
         if not address_response.data:
             raise HTTPException(status_code=404, detail="Endereço não encontrado ou não pertence ao usuário")
 
+        address_data = address_response.data[0]
+
         # Buscar carrinho do usuário
         print("Buscando carrinho do usuário...")
         cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
@@ -1443,7 +1493,18 @@ def create_order(
 
         print(f"Produtos no carrinho: {len(cart_products_response.data)}")
 
-        # Calcular total
+        # Calcular peso total para o frete
+        total_items = sum(item["quantity"] for item in cart_products_response.data)
+        total_weight = max(0.5, total_items * 0.1)  # 0.1kg por CD, mínimo 0.5kg
+        
+        # Calcular frete
+        shipping_cost = ShippingCalculator.calculate_shipping(address_data["cep"], total_weight)
+        if shipping_cost is None:
+            shipping_cost = 35.00  # Valor padrão em caso de erro
+        
+        print(f"Frete calculado: R$ {shipping_cost}")
+
+        # Calcular total dos produtos
         total_value = 0
         for cart_item in cart_products_response.data:
             product = cart_item["product"]
@@ -1451,13 +1512,18 @@ def create_order(
             total_value += float(product["valor"]) * quantity
 
         print(f"Total calculado: {total_value}")
+        
+        # Total final incluindo frete
+        total_with_shipping = total_value + shipping_cost
+        print(f"Total com frete: {total_with_shipping}")
 
         # Criar o pedido no Supabase
         print("Criando pedido...")
         order_data_db = {
             "user_id": user_id,
             "address_id": address_id,
-            "total_amount": total_value,
+            "total_amount": total_with_shipping,
+            "shipping_cost": shipping_cost,
             "pending": True,
             "active": True
         }
@@ -1505,6 +1571,15 @@ def create_order(
                     "unit_price": float(product["valor"])
                 })
             
+            # Adicionar frete como item separado
+            if shipping_cost > 0:
+                items.append({
+                    "title": "Frete",
+                    "quantity": 1,
+                    "currency_id": "BRL", 
+                    "unit_price": float(shipping_cost)
+                })
+            
             # Dados do pagamento
             payment_data = {
                 "items": items,
@@ -1545,14 +1620,17 @@ def create_order(
         return {
             "message": "Pedido criado com sucesso",
             "order_id": new_order_id,
-            "total_amount": total_value,
+            "total_amount": total_with_shipping,
+            "products_total": total_value,
+            "shipping_cost": shipping_cost,
             "payment_link": payment_link,
             "redirect_to": "/meus-pedidos" if payment_link else "/minhas-reservas",
             "order_details": {
                 "id": new_order_id,
                 "user_id": user_id,
                 "address_id": address_id,
-                "total_amount": total_value,
+                "total_amount": total_with_shipping,
+                "shipping_cost": shipping_cost,
                 "payment_link": payment_link,
                 "pending": True,
                 "active": True,
@@ -1618,6 +1696,7 @@ async def get_user_orders(
                 "active": order["active"],
                 "payment_link": order.get("payment_link"),  # Adicionar payment_link
                 "total_amount": order.get("total_amount", total_value),  # Usar total_amount do banco ou calculado
+                "shipping_cost": order.get("shipping_cost", 0),  # Adicionar valor do frete
                 "tracking_code": order.get("tracking_code"),  # Adicionar código de rastreamento
                 "products": products
             })

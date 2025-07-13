@@ -125,6 +125,7 @@ class Order(Base):
     sent = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    shipping_cost = Column(Numeric(10, 2), nullable=False, default=0)  # Valor do frete
     tracking_code = Column(String(255), nullable=True)  # Código de rastreamento dos correios
     
     user = relationship("User", back_populates="orders")

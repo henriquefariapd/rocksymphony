@@ -42,9 +42,18 @@ function AppContent() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]); // Endereços do usuário
   const [selectedAddressId, setSelectedAddressId] = useState(null); // Endereço selecionado
+  const [shippingCost, setShippingCost] = useState(0); // Valor do frete
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false); // Loading do cálculo de frete
+  const [shippingDeliveryDays, setShippingDeliveryDays] = useState(0); // Dias de entrega
 
   const toggleSidebar = () => {
+    const wasOpen = sidebarAberto;
     setSidebarAberto(!sidebarAberto);
+    
+    // Se o carrinho está sendo aberto (não estava aberto antes), calcular frete automaticamente
+    if (!wasOpen && selectedAddressId && cartItems.length > 0) {
+      calculateShipping(selectedAddressId);
+    }
   };
 
   const handleLogin = () => {
@@ -95,10 +104,54 @@ function AppContent() {
         },
       });
       setCartItems(response.data); // Armazenar os produtos no estado
+      
+      // Se já houver um endereço selecionado, calcular frete automaticamente
+      if (selectedAddressId && response.data.length > 0) {
+        calculateShipping(selectedAddressId);
+      }
     } catch (err) {
       console.error("Erro ao recuperar produtos do carrinho:", err);
     }
   };
+
+  // Função para calcular o frete
+  const calculateShipping = async (addressId) => {
+    try {
+      if (!addressId) {
+        setShippingCost(0);
+        setShippingDeliveryDays(0);
+        return;
+      }
+
+      const token = localStorage.getItem("access_token");
+      if (!token || token === 'undefined') return;
+
+      setIsCalculatingShipping(true);
+
+      // Buscar dados do endereço
+      const address = userAddresses.find(addr => addr.id === addressId);
+      if (!address) return;
+
+      const response = await axios.post(`${apiUrl}/api/calculate-shipping`, {
+        cep: address.cep
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setShippingCost(response.data.shipping_cost);
+      setShippingDeliveryDays(response.data.delivery_days);
+    } catch (err) {
+      console.error("Erro ao calcular frete:", err);
+      toast.error("Erro ao calcular frete. Valor padrão será aplicado.");
+      setShippingCost(35.00); // Valor padrão
+      setShippingDeliveryDays(7);
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  };
+
   const handleCheckout = async () => {
     try {
       const token = localStorage.getItem("access_token");
@@ -147,6 +200,11 @@ function AppContent() {
             <div style={{ fontSize: '14px', color: '#666' }}>
               Total: R$ {data.total_amount?.toFixed(2)}
             </div>
+            {data.shipping_cost && (
+              <div style={{ fontSize: '12px', color: '#888' }}>
+                (Produtos: R$ {data.products_total?.toFixed(2)} + Frete: R$ {data.shipping_cost?.toFixed(2)})
+              </div>
+            )}
             <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
               Redirecionando para seus pedidos...
             </div>
@@ -233,6 +291,7 @@ function AppContent() {
       const defaultAddress = response.data.find(addr => addr.is_default);
       if (defaultAddress) {
         setSelectedAddressId(defaultAddress.id);
+        calculateShipping(defaultAddress.id); // Calcular frete automaticamente
       }
     } catch (err) {
       console.error("Erro ao recuperar endereços:", err);
@@ -254,6 +313,17 @@ function AppContent() {
       fetchUserAddresses(); // Buscar endereços do usuário
     }
   }, []);
+
+  // Calcular frete automaticamente quando endereço ou itens do carrinho mudarem
+  useEffect(() => {
+    if (selectedAddressId && cartItems.length > 0 && sidebarAberto) {
+      calculateShipping(selectedAddressId);
+    } else if (!selectedAddressId || cartItems.length === 0) {
+      // Resetar frete se não houver endereço ou itens
+      setShippingCost(0);
+      setShippingDeliveryDays(0);
+    }
+  }, [selectedAddressId, cartItems.length, sidebarAberto]);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -338,7 +408,11 @@ function AppContent() {
                   {userAddresses.length > 0 ? (
                     <select 
                       value={selectedAddressId || ''} 
-                      onChange={(e) => setSelectedAddressId(parseInt(e.target.value))}
+                      onChange={(e) => {
+                        const addressId = parseInt(e.target.value);
+                        setSelectedAddressId(addressId);
+                        calculateShipping(addressId); // Recalcular frete quando endereço mudar
+                      }}
                       className="address-selector"
                     >
                       <option value="">Selecione um endereço</option>
@@ -367,7 +441,12 @@ function AppContent() {
                     Efetuar Pedido
                   </button>
                   <div className="cart-summary-top">
-                    <strong>Total: R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}</strong>
+                    <strong>Total: R$ {(cartItems.reduce((total, item) => total + item.valor * item.quantity, 0) + shippingCost).toFixed(2)}</strong>
+                    {shippingCost > 0 && (
+                      <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                        (Produtos: R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)} + Frete: R$ {shippingCost.toFixed(2)})
+                      </div>
+                    )}
                   </div>
                 </div>
                 <ul>
@@ -395,8 +474,29 @@ function AppContent() {
                   ))}
                 </ul>
                 <div className="cart-summary">
-                  <p>
-                    <strong>Total:</strong> R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}
+                  <div style={{ borderBottom: '1px solid #eee', paddingBottom: '8px', marginBottom: '8px' }}>
+                    <p style={{ margin: '4px 0', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Subtotal:</span>
+                      <span>R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}</span>
+                    </p>
+                    <p style={{ margin: '4px 0', display: 'flex', justifyContent: 'space-between', color: '#666' }}>
+                      <span>
+                        Frete: 
+                        {isCalculatingShipping && <span style={{ fontSize: '12px', marginLeft: '4px' }}>(calculando...)</span>}
+                      </span>
+                      <span>
+                        {shippingCost > 0 ? `R$ ${shippingCost.toFixed(2)}` : 'Selecione um endereço'}
+                      </span>
+                    </p>
+                    {shippingDeliveryDays > 0 && (
+                      <p style={{ margin: '2px 0', fontSize: '12px', color: '#888' }}>
+                        Entrega em até {shippingDeliveryDays} dias úteis
+                      </p>
+                    )}
+                  </div>
+                  <p style={{ margin: '4px 0', fontWeight: 'bold', fontSize: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Total:</span>
+                    <span>R$ {(cartItems.reduce((total, item) => total + item.valor * item.quantity, 0) + shippingCost).toFixed(2)}</span>
                   </p>
                 </div>
               </>

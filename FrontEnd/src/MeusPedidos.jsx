@@ -167,7 +167,16 @@ const MeusPedidos = () => {
                 <div className="order-info">
                   <h3>Pedido #{order.id}</h3>
                   <p>Data: {formatDate(order.order_date)}</p>
-                  <p>Total: R$ {calculateOrderTotal(order).toFixed(2)}</p>
+                  {order.shipping_cost && order.shipping_cost > 0 ? (
+                    <div>
+                      <p>Total: R$ {calculateOrderTotal(order).toFixed(2)}</p>
+                      <p style={{ fontSize: '12px', color: '#666' }}>
+                        (Produtos: R$ {(calculateOrderTotal(order) - (order.shipping_cost || 0)).toFixed(2)} + Frete: R$ {(order.shipping_cost || 0).toFixed(2)})
+                      </p>
+                    </div>
+                  ) : (
+                    <p>Total: R$ {calculateOrderTotal(order).toFixed(2)}</p>
+                  )}
                   <p>Status: {order.pending ? 'Pendente' : 'Processado'}</p>
                   <small className="click-hint">Clique para ver detalhes</small>
                   

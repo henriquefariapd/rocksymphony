@@ -478,7 +478,7 @@ function Produtos() {
             />
           </div>
 
-          <div className="form-group">
+          {/* <div className="form-group">
             <label htmlFor="country">País de Origem:</label>
             <select
               className="form-control"
@@ -497,7 +497,7 @@ function Produtos() {
                 <option value="">Carregando países...</option>
               )}
             </select>
-          </div>
+          </div> */}
 
           {imagem && (
             <div className="image-preview">
