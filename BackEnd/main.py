@@ -22,6 +22,21 @@ import requests
 
 import mercadopago
 import yagmail
+import re
+
+# Função helper para sanitizar nomes de arquivo
+def sanitize_filename(filename):
+    """Remove caracteres especiais e sanitiza o nome do arquivo"""
+    # Remove caracteres especiais, mantém apenas letras, números, espaços, hífens e underscores
+    sanitized = re.sub(r'[^\w\s\-_.]', '', filename)
+    # Substitui múltiplos espaços por um único underscore
+    sanitized = re.sub(r'\s+', '_', sanitized)
+    # Remove underscores duplos
+    sanitized = re.sub(r'_{2,}', '_', sanitized)
+    # Remove underscores do início e fim
+    sanitized = sanitized.strip('_')
+    # Limita o tamanho para evitar nomes muito longos
+    return sanitized[:100] if len(sanitized) > 100 else sanitized
 
 # Importações para desenvolvimento local e Heroku
 try:
@@ -453,7 +468,7 @@ async def create_new_product(
                 # Ler o conteúdo do arquivo
                 file_content = await file.read()
                 file_extension = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
-                file_name = f"{name.replace(' ', '_')}_{int(datetime.now().timestamp())}.{file_extension}"
+                file_name = f"{sanitize_filename(name)}_{int(datetime.now().timestamp())}.{file_extension}"
                 
                 print(f"[DEBUG] Fazendo upload da imagem: {file_name}")
                 
@@ -576,7 +591,8 @@ async def edit_product(
             
             # Gerar nome único para a nova imagem
             file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
-            unique_filename = f"{name.replace(' ', '_')}_{int(time.time())}.{file_extension}"
+            sanitized_name = sanitize_filename(name)
+            unique_filename = f"{sanitized_name}_{int(time.time())}.{file_extension}"
             
             print(f"[DEBUG] Nome único gerado: {unique_filename}")
             

@@ -492,7 +492,7 @@ function Home() {
                 
                 {/* Preço e descrição */}
                 <div className="accordion-container">
-                  <p className="produto-value">{produto.valor}</p>
+                  <p className="produto-value">R$ {parseFloat(produto.valor).toFixed(2)}</p>
                   <button 
                     className="accordion-toggle"
                     onClick={() => handleToggleDescription(produto.id)}
