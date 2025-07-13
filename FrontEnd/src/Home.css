@@ -47,95 +47,234 @@
   margin: 0 auto;
 }
 
-/* Grid de produtos */
+/* Grid de produtos - Layout otimizado para CDs */
 .produtos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--spacing-xl);
-  margin-top: var(--spacing-xl);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+  padding: 0 16px;
 }
 
-/* Card do produto */
+/* Card do produto - Design moderno para CDs */
 .produto-card {
-  background: var(--bg-primary);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--box-shadow);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  transition: all var(--transition-normal);
-  border: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #f1f5f9;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .produto-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--box-shadow-lg);
-  border-color: var(--primary-color);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: #881337;
 }
 
-/* Imagem do produto */
+/* Container da imagem quadrada para CDs */
+.produto-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Imagem do produto - Quadrada para CDs */
 .produto-card-image {
   width: 100%;
-  height: 250px;
+  height: 100%;
   object-fit: cover;
-  transition: transform var(--transition-normal);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .produto-card:hover .produto-card-image {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
-/* Conteúdo do card */
-.produto-card-content {
-  padding: var(--spacing-lg);
-}
-
-.produto-card-title {
-  font-size: var(--font-size-xl);
+/* Badge de estoque/novidade */
+.produto-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(136, 19, 55, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+}
+
+/* Informações do produto */
+.produto-info {
+  padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.produto-info h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
   line-height: 1.3;
-}
-
-.produto-card-artist {
-  font-size: var(--font-size-base);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-md);
-  font-style: italic;
-}
-
-.produto-card-description {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-clamp: 3;
+  line-clamp: 2;
   overflow: hidden;
 }
 
-/* Footer do card */
-.produto-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid var(--border-color);
-  padding-top: var(--spacing-md);
-  margin-top: var(--spacing-md);
-}
-
-.produto-card-price {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--primary-color);
-}
-
-.produto-card-price::before {
-  content: 'R$ ';
-  font-size: var(--font-size-base);
+.produto-artist {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 12px 0;
+  font-style: italic;
   font-weight: 500;
+}
+
+/* Detalhes do produto (ref, selo, ano) */
+.produto-details {
+  margin: 12px 0;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border-left: 3px solid #e11d48;
+}
+
+.produto-details p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.produto-reference {
+  color: #059669 !important;
+}
+
+.produto-stamp {
+  color: #7c3aed !important;
+}
+
+.produto-year {
+  color: #dc2626 !important;
+}
+
+/* Container do accordion */
+.accordion-container {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.produto-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #881337;
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+
+.produto-value::before {
+  content: 'R$ ';
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Botão do accordion */
+.accordion-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.accordion-toggle:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.produto-description {
+  margin: 12px 0 0 0;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+  border-left: 3px solid #06b6d4;
+}
+
+/* Ações do produto */
+.produto-acoes {
+  padding: 16px 20px 20px;
+  display: flex;
+  gap: 8px;
+  background: #fafafa;
+}
+
+.btn-comprar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-comprar:first-child {
+  background: linear-gradient(135deg, #7c2d12 0%, #a16207 100%);
+  color: white;
+}
+
+.btn-comprar:first-child:hover {
+  background: linear-gradient(135deg, #6b2709 0%, #7c2d12 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 45, 18, 0.4);
+}
+
+.btn-comprar:last-child {
+  background: linear-gradient(135deg, #881337 0%, #be123c 100%);
+  color: white;
+}
+
+.btn-comprar:last-child:hover {
+  background: linear-gradient(135deg, #6b1428 0%, #881337 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(136, 19, 55, 0.4);
+}
+
+.btn-comprar svg {
+  font-size: 16px;
 }
 
 /* Botão de adicionar ao carrinho */
@@ -239,6 +378,7 @@
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--bg-secondary);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   font-size: var(--font-size-sm);
@@ -472,81 +612,78 @@
   margin: 0;
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-  .home-container {
-    padding: var(--spacing-md);
-  }
-  
-  .home-header h1 {
-    font-size: var(--font-size-xxl);
-  }
-  
-  .home-header p {
-    font-size: var(--font-size-base);
-  }
-  
+/* Responsividade - Otimizada para catálogo de CDs */
+@media (max-width: 1024px) {
   .produtos-grid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .produtos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 0 12px;
   }
   
-  .produto-card-content {
-    padding: var(--spacing-md);
+  .produto-info {
+    padding: 16px;
   }
   
-  .produto-card-footer {
+  .produto-acoes {
+    padding: 12px 16px 16px;
     flex-direction: column;
-    gap: var(--spacing-md);
-    align-items: stretch;
+    gap: 8px;
   }
   
-  .btn-add-cart {
+  .btn-comprar {
     width: 100%;
-    justify-content: center;
+    padding: 12px;
   }
   
-  .produtos-filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .search-input {
-    max-width: none;
+  .search-filters-container {
+    padding: 0 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .home-header {
-    padding: var(--spacing-lg) var(--spacing-md);
+  .produtos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 0 8px;
   }
   
-  .home-header h1 {
-    font-size: var(--font-size-xl);
+  .produto-info h3 {
+    font-size: 16px;
   }
   
-  .produto-card-image {
-    height: 200px;
+  .produto-value {
+    font-size: 20px;
   }
   
-  .produto-card-title {
-    font-size: var(--font-size-lg);
+  .produto-details {
+    padding: 8px;
   }
   
-  .produto-card-price {
-    font-size: var(--font-size-lg);
+  .produto-details p {
+    font-size: 11px;
+  }
+  
+  .search-filters-container {
+    padding: 0 8px;
   }
 }
 
-/* Animações */
+/* Animações e efeitos especiais */
 .produto-card {
-  animation: fadeInUp 0.5s ease-out;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -554,11 +691,73 @@
   }
 }
 
-/* Efeito de shimmer para loading */
+/* Efeito de loading shimmer */
 .produto-card.loading {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, #f8fafc 25%, #e2e8f0 50%, #f8fafc 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Efeitos especiais para CDs */
+.produto-image-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.produto-card:hover .produto-image-container::before {
+  opacity: 1;
+  animation: shine 0.8s ease-out;
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Estados vazios e de erro */
+.loading-container,
+.error-container,
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #881337;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes shimmer {

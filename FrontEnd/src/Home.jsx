@@ -458,56 +458,70 @@ function Home() {
         <div className="produtos-grid">
           {filteredProdutos.map((produto) => (
             <div key={produto.id} className="produto-card">
-              <img
-                src={getImageUrl(produto.image_path)}
-                alt={produto.name}
-                className="produto-card-image"
-                onError={(e) => {
-                  e.target.src = getImageUrl(null); // Usar placeholder se a imagem falhar
-                }}
-              />
+              <div className="produto-image-container">
+                <img
+                  src={getImageUrl(produto.image_path)}
+                  alt={produto.name}
+                  className="produto-card-image"
+                  onError={(e) => {
+                    e.target.src = getImageUrl(null); // Usar placeholder se a imagem falhar
+                  }}
+                />
+                {produto.remaining && produto.remaining < 5 && (
+                  <div className="produto-badge">Últimas unidades</div>
+                )}
+              </div>
               <div className="produto-info">
                 <h3>{produto.name}</h3>
                 <p className="produto-artist">{produto.artist_name || produto.artist || 'Artista não informado'}</p>
                 
-                {/* Novos campos */}
-                <div className="produto-details">
-                  {produto.reference_code && (
-                    <p className="produto-reference">Ref: {produto.reference_code}</p>
-                  )}
-                  {produto.stamp && (
-                    <p className="produto-stamp">Selo: {produto.stamp}</p>
-                  )}
-                  {produto.release_year && (
-                    <p className="produto-year">Ano: {produto.release_year}</p>
-                  )}
-                </div>
+                {/* Detalhes do produto */}
+                {(produto.reference_code || produto.stamp || produto.release_year) && (
+                  <div className="produto-details">
+                    {produto.reference_code && (
+                      <p className="produto-reference">📀 Ref: {produto.reference_code}</p>
+                    )}
+                    {produto.stamp && (
+                      <p className="produto-stamp">🏷️ Selo: {produto.stamp}</p>
+                    )}
+                    {produto.release_year && (
+                      <p className="produto-year">📅 Ano: {produto.release_year}</p>
+                    )}
+                  </div>
+                )}
                 
-                {/* Accordion de descrição */}
+                {/* Preço e descrição */}
                 <div className="accordion-container">
-                  <p className="produto-value">R$ {produto.valor}</p>
+                  <p className="produto-value">{produto.valor}</p>
                   <button 
                     className="accordion-toggle"
                     onClick={() => handleToggleDescription(produto.id)}
                   >
                     {expandedProduct === produto.id ? (
-                      <FaAngleUp />  // Ícone de seta para cima quando expandido
+                      <>
+                        <FaAngleUp />
+                        Fechar descrição
+                      </>
                     ) : (
-                      <FaAngleDown />  // Ícone de seta para baixo quando recolhido
+                      <>
+                        <FaAngleDown />
+                        Ver descrição
+                      </>
                     )}
-                    {expandedProduct === produto.id ? " Fechar" : " Ver descrição"}
                   </button>
                   {expandedProduct === produto.id && (
-                    <p className="produto-description">{produto.description}</p>
+                    <p className="produto-description">{produto.description || 'Descrição não disponível.'}</p>
                   )}
                 </div>
               </div>
               <div className="produto-acoes">
                 <button className="btn-comprar">
-                  <BiPurchaseTagAlt /> Comprar
+                  <BiPurchaseTagAlt />
+                  Comprar
                 </button>
                 <button className="btn-comprar" onClick={() => handleAddtoCart(produto.id)}>
-                  <FaCartPlus /> Adicionar ao carrinho
+                  <FaCartPlus />
+                  +Carrinho
                 </button>
               </div>
             </div>
