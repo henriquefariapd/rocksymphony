@@ -1157,11 +1157,16 @@ async def get_user_orders(
                 quantity = order_product["quantity"]
                 price_at_time = float(order_product.get("price_at_time", product["valor"]))
                 
+                print(f"[DEBUG] Produto no pedido {order['id']}: {product.get('name', 'N/A')}")
+                print(f"  image_path: {product.get('image_path', 'N/A')}")
+                
                 products.append({
+                    "id": product["id"],  # Adicionar ID do produto
                     "name": product["name"],
                     "artist": product["artist"],
                     "quantity": quantity,
-                    "valor": price_at_time
+                    "valor": price_at_time,
+                    "image_path": product.get("image_path")  # Adicionar image_path
                 })
                 total_value += price_at_time * quantity
             
@@ -1170,8 +1175,9 @@ async def get_user_orders(
                 "order_date": order["order_date"],
                 "pending": order["pending"],
                 "active": order["active"],
-                "products": products,
-                "total_value": total_value
+                "payment_link": order.get("payment_link"),  # Adicionar payment_link
+                "total_amount": order.get("total_amount", total_value),  # Usar total_amount do banco ou calculado
+                "products": products
             })
         
         return result

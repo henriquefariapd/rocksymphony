@@ -62,7 +62,6 @@ const MeusPedidos = () => {
       if (Array.isArray(data)) {
         // Ordenar pedidos por data (mais recente primeiro)
         const sortedOrders = data.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
-        debugger
         setOrders(sortedOrders);
         
         // Expandir automaticamente o pedido mais recente se houver pedidos
