@@ -1,0 +1,397 @@
+.mapa-do-rock-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 80vh;
+}
+
+.mapa-do-rock-container h1 {
+  text-align: center;
+  color: #8B1538;
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mapa-content {
+  display: flex;
+  gap: 30px;
+  height: calc(100vh - 150px);
+  min-height: 600px;
+}
+
+/* Sidebar das bandas */
+.bands-sidebar {
+  width: 400px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  border: 2px solid #dee2e6;
+}
+
+.no-selection {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-selection h2 {
+  color: #8B1538;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.no-selection p {
+  color: #6c757d;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.instruction {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.click-icon {
+  font-size: 2rem;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Informações do país selecionado */
+.country-bands h2 {
+  color: #8B1538;
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  border-bottom: 3px solid #8B1538;
+  padding-bottom: 10px;
+}
+
+.country-subtitle {
+  color: #6c757d;
+  font-style: italic;
+  margin-bottom: 25px;
+  font-size: 1rem;
+}
+
+.bands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.band-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #8B1538;
+  transition: all 0.3s ease;
+}
+
+.band-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.band-card h3 {
+  color: #8B1538;
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.band-year {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.band-description {
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Mapa mundial real com Leaflet */
+.world-map-real {
+  flex: 1;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-radius: 15px;
+  padding: 10px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: 2px solid #90caf9;
+  overflow: hidden;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px !important;
+  z-index: 1;
+}
+
+/* Customizar tooltips do Leaflet */
+.leaflet-tooltip {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Estilo para o header do país selecionado */
+.country-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reset-btn {
+  background: linear-gradient(135deg, #8B1538, #A01B3B);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.reset-btn:hover {
+  background: linear-gradient(135deg, #A01B3B, #B91C47);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3);
+}
+
+/* Legenda do mapa */
+.map-legend {
+  margin-top: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+}
+
+.map-legend h4 {
+  color: #8B1538;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.legend-color {
+  width: 20px;
+  height: 15px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+}
+
+.legend-color.prog {
+  background: #8B1538;
+}
+
+.legend-color.no-data {
+  background: #34495e;
+}
+
+/* Atualizar estilo da instrução */
+.instruction span:last-child {
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+/* Remover estilos do mapa SVG antigo */
+.world-map {
+  display: none;
+}
+
+.map-svg {
+  display: none;
+}
+
+.country {
+  display: none;
+}
+
+/* Indicador de carregamento */
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #6c757d;
+}
+
+.loading-indicator p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Responsivo */
+@media (max-width: 1200px) {
+  .mapa-content {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .bands-sidebar {
+    width: 100%;
+    max-height: 400px;
+    order: 2;
+  }
+  
+  .world-map-real {
+    order: 1;
+    height: 500px;
+  }
+  
+  .country-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .reset-btn {
+    align-self: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .mapa-do-rock-container {
+    padding: 15px;
+  }
+  
+  .mapa-do-rock-container h1 {
+    font-size: 2rem;
+  }
+  
+  .mapa-content {
+    gap: 20px;
+  }
+  
+  .bands-sidebar {
+    padding: 20px;
+  }
+  
+  .country-bands h2 {
+    font-size: 1.5rem;
+  }
+  
+  .band-card {
+    padding: 15px;
+  }
+  
+  .band-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .world-map-real {
+    height: 400px;
+    padding: 8px;
+  }
+  
+  .reset-btn {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mapa-do-rock-container h1 {
+    font-size: 1.7rem;
+  }
+  
+  .bands-sidebar {
+    padding: 15px;
+  }
+  
+  .band-card {
+    padding: 12px;
+  }
+  
+  .world-map-real {
+    height: 350px;
+    padding: 5px;
+  }
+  
+  .instruction {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .map-legend {
+    padding: 15px;
+  }
+  
+  .legend-item {
+    font-size: 0.8rem;
+  }
+}
+
+/* Scrollbar customizada para a sidebar */
+.bands-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bands-sidebar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.bands-sidebar::-webkit-scrollbar-thumb {
+  background: #8B1538;
+  border-radius: 10px;
+}
+
+.bands-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6d1129;
+}
+
+/* Estilo customizado para controles do Leaflet */
+.leaflet-control-zoom a {
+  background: #8B1538 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #A01B3B !important;
+}

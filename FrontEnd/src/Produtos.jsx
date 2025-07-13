@@ -8,7 +8,8 @@ function Produtos() {
   const [loading, setLoading] = useState(true);
   const [showCadastro, setShowCadastro] = useState(false);
   const [nome, setNome] = useState('');
-  const [artist, setArtist] = useState('');
+  const [artistId, setArtistId] = useState('');
+  const [artistas, setArtistas] = useState([]);
   const [description, setDescription] = useState('');
   const [valor, setValor] = useState('');
   const [remaining, setRemaining] = useState('');
@@ -54,6 +55,11 @@ function Produtos() {
       
       const data = await response.json();
       console.log("Data received:", data);
+      console.log("Primeiro produto:", data[0]);
+      if (data[0]) {
+        console.log("Artist_name do primeiro produto:", data[0].artist_name);
+        console.log("Artist_id do primeiro produto:", data[0].artist_id);
+      }
       setProdutos(data);
     } catch (error) {
       console.error('Erro completo ao buscar produtos:', error);
@@ -85,16 +91,39 @@ function Produtos() {
     }
   };
 
+  const fetchArtistas = async () => {
+    try {
+      console.log("=== DEBUG FETCH ARTISTAS ===");
+      console.log("API URL:", `${apiUrl}/api/artists`);
+      
+      const response = await fetch(`${apiUrl}/api/artists`);
+      console.log("Artists response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Artists data:", data);
+        setArtistas(data.artists || []);
+      } else {
+        console.error('Erro no response de artistas:', response.status);
+        setArtistas([]);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar artistas:', error);
+      setArtistas([]);
+    }
+  };
+
   useEffect(() => {
     fetchProdutos();
     fetchCountries();
+    fetchArtistas();
   }, []);
 
   const handleCadastroClick = () => {
     setShowCadastro(!showCadastro);
     setEditingProduto(null);
     setNome('');
-    setArtist('');
+    setArtistId('');
     setDescription('');
     setValor('');
     setRemaining('');
@@ -112,7 +141,7 @@ function Produtos() {
     console.log("=== DEBUG SUBMIT ===");
     console.log("Token:", token);
     console.log("Nome:", nome);
-    console.log("Artist:", artist);
+    console.log("Artist ID:", artistId);
     console.log("Description:", description);
     console.log("Valor:", valor);
     console.log("Remaining:", remaining);
@@ -137,7 +166,7 @@ function Produtos() {
       // Tanto para POST quanto para PUT, usar FormData agora
       const formData = new FormData();
       formData.append('name', nome);
-      formData.append('artist', artist);
+      formData.append('artist_id', artistId);
       formData.append('description', description);
       formData.append('valor', valor);
       formData.append('remaining', remaining);
@@ -178,7 +207,7 @@ function Produtos() {
       if (response.ok) {
         toast.success(editingProduto ? 'Produto atualizado!' : 'Produto cadastrado!');
         setNome('');
-        setArtist('');
+        setArtistId('');
         setDescription('');
         setValor('');
         setRemaining('');
@@ -196,9 +225,13 @@ function Produtos() {
   };
 
   const handleEdit = (produto) => {
+    console.log("=== DEBUG EDIT ===");
+    console.log("Produto para editar:", produto);
+    console.log("Artist ID do produto:", produto.artist_id);
+    
     setEditingProduto(produto);
     setNome(produto.name);
-    setArtist(produto.artist);
+    setArtistId(produto.artist_id || '');
     setDescription(produto.description);
     setValor(produto.valor);
     setRemaining(produto.remaining);
@@ -282,7 +315,7 @@ function Produtos() {
           <tbody>
             {produtos.map((produto) => (
               <tr key={produto.id}>
-                <td>{produto.artist}</td>
+                <td>{produto.artist_name || produto.artist || '-'}</td>
                 <td>{produto.name}</td>
                 <td>{produto.reference_code || '-'}</td>
                 <td>{produto.stamp || '-'}</td>
@@ -321,16 +354,26 @@ function Produtos() {
       {showCadastro && (
         <form onSubmit={handleSubmit} className="form-cadastro">
           <div className="form-group">
-            <label htmlFor="artist">Nome do Artista:</label>
-            <input
+            <label htmlFor="artist">Selecione o Artista:</label>
+            <select
               className="form-control"
-              type="text"
               id="artist"
-              value={artist}
-              onChange={(e) => setArtist(e.target.value)}
+              value={artistId}
+              onChange={(e) => setArtistId(e.target.value)}
               required
-              placeholder="Ex: Guns N' Roses"
-            />
+            >
+              <option value="">Selecione um artista</option>
+              {artistas.map((artist) => (
+                <option key={artist.id} value={artist.id}>
+                  {artist.name} ({artist.origin_country})
+                </option>
+              ))}
+            </select>
+            {artistas.length === 0 && (
+              <small className="text-muted">
+                Nenhum artista encontrado. <a href="/artistas">Cadastre artistas aqui</a>
+              </small>
+            )}
           </div>
           <div className="form-group">
             <label htmlFor="name">Nome do Álbum/CD:</label>

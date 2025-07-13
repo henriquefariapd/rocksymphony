@@ -16,6 +16,8 @@ import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
 import Conta from './Conta';
+import MapaDoRock from './MapaDoRock';
+import Artistas from './Artistas';
 import LoginModal from './LoginModal';
 import { CiShoppingCart } from "react-icons/ci";
 import { IoIosCloseCircleOutline } from "react-icons/io";
@@ -396,6 +398,8 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/produtos" element={<Produtos />} />
+        <Route path="/artistas" element={isLoggedIn ? <Artistas /> : <Navigate to="/login" />} />
+        <Route path="/mapa-do-rock" element={<MapaDoRock />} />
         <Route path="/minhas-reservas" element={isLoggedIn ? <MeusPedidos /> : <Navigate to="/login" />} />
         <Route path="/conta" element={isLoggedIn ? <Conta onAddressUpdate={refreshAddresses} /> : <Navigate to="/login" />} />
         <Route path="/pedidos" element={isLoggedIn ? <Pedidos /> : <Navigate to="/login" />} />

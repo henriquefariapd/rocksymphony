@@ -59,6 +59,22 @@ class CountryEnum(enum.Enum):
 # Base para os modelos do SQLAlchemy
 Base = declarative_base()
 
+class Artist(Base):
+    __tablename__ = "artists"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    origin_country = Column(String(100), nullable=False)
+    members = Column(Text)
+    formed_year = Column(Integer)
+    description = Column(Text)
+    genre = Column(String(100))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relacionamento com produtos
+    products = relationship("Product", back_populates="artist")
+
 # Modelo de Usuário (sincronizado com Supabase Auth)
 class User(Base):
     __tablename__ = "users"
@@ -78,7 +94,8 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), index=True, nullable=False)  # Nome do álbum
-    artist = Column(String(200), index=True, nullable=False)  # Nome do artista/banda
+    # artist = Column(String(200), index=True, nullable=False)  # Nome do artista/banda - REMOVIDO
+    artist_id = Column(Integer, ForeignKey("artists.id"), nullable=True)  # Relação com artista
     description = Column(Text, nullable=True)  # Descrição do álbum
     valor = Column(Numeric(10, 2), nullable=False)  # Preço em decimal
     remaining = Column(Integer, nullable=False, default=0)  # Estoque disponível
@@ -91,6 +108,8 @@ class Product(Base):
     country = Column(Enum(CountryEnum), nullable=True)  # País de origem
     created_at = Column(DateTime, default=datetime.utcnow)
     
+    # Relacionamentos
+    artist = relationship("Artist", back_populates="products")
     shoppingcarts = relationship("ShoppingCartProduct", back_populates="product")
 
 # Modelo de Pedido

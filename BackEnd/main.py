@@ -26,10 +26,10 @@ import yagmail
 # Importações para desenvolvimento local e Heroku
 try:
     # Tentativa para Heroku (import relativo)
-    from .models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
+    from .models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User, Artist
 except ImportError:
     # Fallback para desenvolvimento local (import absoluto)
-    from models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User
+    from models import Order, OrderProduct, SessionLocal, Product, ShoppingCart, ShoppingCartProduct, User, Artist
 
 # Importações do sistema de autenticação Supabase
 try:
@@ -254,14 +254,36 @@ async def get_available_products(current_user: dict = Depends(get_current_user_o
     print(f"[DEBUG] Buscando produtos para usuário: {user_id}")
     
     try:
-        # Buscar produtos no Supabase
-        response = supabase.table("products").select("*").execute()
+        # Buscar produtos com JOIN para incluir nome do artista
+        response = supabase.table("products").select(
+            "*, artists(name, origin_country)"
+        ).execute()
         
         print(f"[DEBUG] Produtos encontrados no Supabase: {len(response.data) if response.data else 0}")
         
         if response.data:
-            print(f"[DEBUG] Primeiro produto: {response.data[0]}")
-            return response.data
+            # Processar dados para incluir artist_name no nível do produto
+            processed_products = []
+            for product in response.data:
+                # Criar cópia do produto
+                processed_product = dict(product)
+                
+                # Adicionar artist_name se existir relacionamento
+                if product.get('artists'):
+                    processed_product['artist_name'] = product['artists']['name']
+                    processed_product['artist_country'] = product['artists']['origin_country']
+                else:
+                    processed_product['artist_name'] = 'Artista não encontrado'
+                    processed_product['artist_country'] = '-'
+                
+                # Remover o objeto artists aninhado para evitar confusão
+                if 'artists' in processed_product:
+                    del processed_product['artists']
+                    
+                processed_products.append(processed_product)
+            
+            print(f"[DEBUG] Primeiro produto processado: {processed_products[0]}")
+            return processed_products
         else:
             print("[DEBUG] Nenhum produto encontrado no Supabase")
             return []  # Retornar lista vazia ao invés de erro para usuários não logados
@@ -272,7 +294,7 @@ async def get_available_products(current_user: dict = Depends(get_current_user_o
 
 class ProductCreate(BaseModel):
     name: str
-    artist: str
+    artist_id: int  # Mudança: agora referencia o ID do artista
     description: str
     valor: float
     remaining: int
@@ -280,6 +302,23 @@ class ProductCreate(BaseModel):
     stamp: str = ""
     release_year: int = None
     country: str = ""
+
+# Schemas para Artist
+class ArtistCreate(BaseModel):
+    name: str
+    origin_country: str
+    members: str = ""
+    formed_year: int = None
+    description: str = ""
+    genre: str = ""
+
+class ArtistUpdate(BaseModel):
+    name: str = None
+    origin_country: str = None
+    members: str = None
+    formed_year: int = None
+    description: str = None
+    genre: str = None
 
 @app.post("/api/products")
 async def create_new_product(
@@ -572,6 +611,162 @@ async def delete_product(
     except Exception as e:
         print(f"[DEBUG] Erro ao deletar produto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {str(e)}")
+
+# ===== ENDPOINTS DE ARTISTAS =====
+
+@app.get("/api/artists")
+async def get_artists(current_user: dict = Depends(get_current_user_optional)):
+    """Buscar todos os artistas"""
+    try:
+        print("[DEBUG] Buscando artistas...")
+        response = supabase.table("artists").select("*").order("name").execute()
+        
+        print(f"[DEBUG] Artistas encontrados: {len(response.data)}")
+        return {"artists": response.data}
+    
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar artistas: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar artistas: {str(e)}")
+
+@app.get("/api/artists/by-country/{country}")
+async def get_artists_by_country(country: str, current_user: dict = Depends(get_current_user_optional)):
+    """Buscar artistas por país"""
+    try:
+        print(f"[DEBUG] Buscando artistas do país: {country}")
+        response = supabase.table("artists").select("*").eq("origin_country", country).execute()
+        
+        print(f"[DEBUG] Artistas encontrados: {len(response.data)}")
+        return {"artists": response.data}
+    
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar artistas por país: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar artistas: {str(e)}")
+
+@app.post("/api/artists")
+async def create_artist(
+    name: str = Form(...),
+    origin_country: str = Form(...),
+    members: str = Form(""),
+    formed_year: int = Form(None),
+    description: str = Form(""),
+    genre: str = Form(""),
+    current_user: dict = Depends(get_current_user)
+):
+    """Criar novo artista (apenas admin)"""
+    try:
+        print(f"[DEBUG] Criando artista: {name}")
+        
+        # Verificar se é admin
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Apenas administradores podem criar artistas")
+        
+        new_artist = {
+            "name": name,
+            "origin_country": origin_country,
+            "members": members,
+            "formed_year": formed_year,
+            "description": description,
+            "genre": genre
+        }
+        
+        print(f"[DEBUG] Dados do artista: {new_artist}")
+        
+        response = supabase.table("artists").insert(new_artist).execute()
+        
+        if response.data:
+            return {"message": f"Artista '{name}' criado com sucesso!", "artist": response.data[0]}
+        else:
+            raise HTTPException(status_code=400, detail="Erro ao criar artista")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao criar artista: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar artista: {str(e)}")
+
+@app.put("/api/artists/{artist_id}")
+async def update_artist(
+    artist_id: int,
+    name: str = Form(...),
+    origin_country: str = Form(...),
+    members: str = Form(""),
+    formed_year: int = Form(None),
+    description: str = Form(""),
+    genre: str = Form(""),
+    current_user: dict = Depends(get_current_user)
+):
+    """Atualizar artista (apenas admin)"""
+    try:
+        print(f"[DEBUG] Atualizando artista {artist_id}")
+        
+        # Verificar se é admin
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Apenas administradores podem editar artistas")
+        
+        updated_artist = {
+            "name": name,
+            "origin_country": origin_country,
+            "members": members,
+            "formed_year": formed_year,
+            "description": description,
+            "genre": genre,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        response = supabase.table("artists").update(updated_artist).eq("id", artist_id).execute()
+        
+        if response.data:
+            return {"message": f"Artista '{name}' atualizado com sucesso!"}
+        else:
+            raise HTTPException(status_code=404, detail="Artista não encontrado")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao atualizar artista: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar artista: {str(e)}")
+
+@app.delete("/api/artists/{artist_id}")
+async def delete_artist(
+    artist_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Deletar artista (apenas admin)"""
+    try:
+        print(f"[DEBUG] Deletando artista {artist_id}")
+        
+        # Verificar se é admin
+        if not current_user.get("is_admin"):
+            raise HTTPException(status_code=403, detail="Apenas administradores podem deletar artistas")
+        
+        # Buscar artista antes de deletar
+        artist_response = supabase.table("artists").select("*").eq("id", artist_id).execute()
+        
+        if not artist_response.data:
+            raise HTTPException(status_code=404, detail="Artista não encontrado")
+        
+        artist = artist_response.data[0]
+        artist_name = artist["name"]
+        
+        # Verificar se existem produtos vinculados
+        products_response = supabase.table("products").select("id").eq("artist_id", artist_id).execute()
+        
+        if products_response.data:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Não é possível deletar o artista '{artist_name}' pois existem {len(products_response.data)} produto(s) vinculado(s)"
+            )
+        
+        # Deletar artista
+        response = supabase.table("artists").delete().eq("id", artist_id).execute()
+        
+        return {"message": f"Artista '{artist_name}' excluído com sucesso!"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao deletar artista: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar artista: {str(e)}")
 
 # ===== ENDPOINTS DE ENDEREÇOS =====
 
@@ -1144,7 +1339,7 @@ async def get_user_orders(
         
         # Buscar pedidos do usuário
         orders_response = supabase.table("orders").select(
-            "*, order_products(*, product:products(*))"
+            "*, order_products(*, product:products(*, artists(name)))"
         ).eq("user_id", user_id).execute()
         
         result = []
@@ -1157,13 +1352,19 @@ async def get_user_orders(
                 quantity = order_product["quantity"]
                 price_at_time = float(order_product.get("price_at_time", product["valor"]))
                 
+                # Buscar nome do artista
+                artist_name = "Artista não informado"
+                if product.get("artists"):
+                    artist_name = product["artists"]["name"]
+                
                 print(f"[DEBUG] Produto no pedido {order['id']}: {product.get('name', 'N/A')}")
                 print(f"  image_path: {product.get('image_path', 'N/A')}")
+                print(f"  artist: {artist_name}")
                 
                 products.append({
                     "id": product["id"],  # Adicionar ID do produto
                     "name": product["name"],
-                    "artist": product["artist"],
+                    "artist": artist_name,
                     "quantity": quantity,
                     "valor": price_at_time,
                     "image_path": product.get("image_path")  # Adicionar image_path
@@ -1855,15 +2056,20 @@ async def get_my_orders(
         # Para cada pedido, buscar os produtos
         result = []
         for order in orders:
-            order_products_response = supabase.table("order_products").select("*, products(*)").eq("order_id", order["id"]).execute()
+            order_products_response = supabase.table("order_products").select("*, products(*, artists(name))").eq("order_id", order["id"]).execute()
             
             products = []
             if order_products_response.data:
                 for op in order_products_response.data:
+                    # Buscar nome do artista
+                    artist_name = "Artista não informado"
+                    if op["products"]["artists"]:
+                        artist_name = op["products"]["artists"]["name"]
+                    
                     products.append({
                         "id": op["products"]["id"],
                         "name": op["products"]["name"],
-                        "artist": op["products"]["artist"],
+                        "artist": artist_name,
                         "valor": op["products"]["valor"],
                         "quantity": op["quantity"],
                         "image_path": op["products"]["image_path"]
@@ -1905,15 +2111,20 @@ async def get_all_orders_admin(
         # Para cada pedido, buscar os produtos
         result = []
         for order in orders:
-            order_products_response = supabase.table("order_products").select("*, products(*)").eq("order_id", order["id"]).execute()
+            order_products_response = supabase.table("order_products").select("*, products(*, artists(name))").eq("order_id", order["id"]).execute()
             
             products = []
             if order_products_response.data:
                 for op in order_products_response.data:
+                    # Buscar nome do artista
+                    artist_name = "Artista não informado"
+                    if op["products"]["artists"]:
+                        artist_name = op["products"]["artists"]["name"]
+                    
                     products.append({
                         "id": op["products"]["id"],
                         "name": op["products"]["name"],
-                        "artist": op["products"]["artist"],
+                        "artist": artist_name,
                         "valor": op["products"]["valor"],
                         "quantity": op["quantity"],
                         "image_path": op["products"]["image_path"]

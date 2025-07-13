@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom'; // Se estiver usando React Router 
-import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt, FaUserCog } from 'react-icons/fa'; // Importando ícones do React Icons
+import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt, FaUserCog, FaMapMarkerAlt, FaMusic } from 'react-icons/fa'; // Importando ícones do React Icons
 import { AiOutlineSchedule } from "react-icons/ai";
 import { GrConfigure } from "react-icons/gr";
 import { GiMusicalScore } from "react-icons/gi";
@@ -21,6 +21,10 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
           <Link to="/" className="space-button">
             <FaHome /> Home {/* Ícone de calendário */}
           </Link>
+          
+          <Link to="/mapa-do-rock" className="space-button">
+            <FaMapMarkerAlt /> Mapa do Rock {/* Ícone de mapa */}
+          </Link>
 
           {!isAdmin && (
             <>
@@ -38,6 +42,9 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
             <>
               <Link to="/produtos" className="space-button">
                 <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
+              </Link>
+              <Link to="/artistas" className="space-button">
+                <FaMusic /> Configurar Artistas {/* Ícone de música */}
               </Link>
               <Link to="/pedidos" className="space-button">
                 <AiOutlineSchedule /> Ver pedidos {/* Ícone de hotel */}
