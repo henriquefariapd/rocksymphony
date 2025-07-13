@@ -317,6 +317,46 @@
   color: #28a745;
 }
 
+/* Estilos para valores separados */
+.order-totals {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+  margin: 10px 0;
+  border-left: 4px solid #8B1538;
+}
+
+.order-totals p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.order-totals p:last-child {
+  font-size: 16px;
+  color: #8B1538;
+}
+
+/* Estilos para endereço de entrega */
+.delivery-address {
+  background-color: #f0f8ff;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border: 1px solid #e0e0e0;
+}
+
+.delivery-address h4 {
+  color: #8B1538;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.delivery-address p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #333;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .product-item {

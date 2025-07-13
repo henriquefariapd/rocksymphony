@@ -171,7 +171,16 @@ const Pedidos = () => {
                   <h3>Pedido #{order.id}</h3>
                   <p>Cliente: {order.user_email}</p>
                   <p>Data: {formatDate(order.order_date)}</p>
-                  <p>Total: R$ {parseFloat(order.total_amount).toFixed(2)}</p>
+                  
+                  {/* Valores separados */}
+                  <div className="order-totals">
+                    <p>Produtos: R$ {parseFloat(order.subtotal || order.total_amount - (order.shipping_cost || 0)).toFixed(2)}</p>
+                    {order.shipping_cost && (
+                      <p>Frete: R$ {parseFloat(order.shipping_cost).toFixed(2)}</p>
+                    )}
+                    <p><strong>Total: R$ {parseFloat(order.total_amount).toFixed(2)}</strong></p>
+                  </div>
+                  
                   <p className={`order-status ${getStatusClass(order)}`}>
                     Status: {getOrderStatus(order)}
                   </p>
@@ -217,6 +226,17 @@ const Pedidos = () => {
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Endereço de entrega */}
+                  {order.delivery_address && (
+                    <div className="delivery-address">
+                      <h4>Endereço de Entrega:</h4>
+                      <p><strong>Destinatário:</strong> {order.delivery_address.receiver_name}</p>
+                      <p><strong>Endereço:</strong> {order.delivery_address.full_address}</p>
+                      <p><strong>CEP:</strong> {order.delivery_address.cep}</p>
+                      <p><strong>Cidade:</strong> {order.delivery_address.city} - {order.delivery_address.state}</p>
+                    </div>
+                  )}
                   
                   {/* Exibir código de rastreamento se existir */}
                   {order.tracking_code && (

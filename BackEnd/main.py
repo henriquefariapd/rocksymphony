@@ -1900,8 +1900,8 @@ async def get_all_orders_admin(
     try:
         print(f"[DEBUG] Admin buscando todos os pedidos")
         
-        # Buscar todos os pedidos
-        orders_response = supabase.table("orders").select("*, users(email)").order("order_date", desc=True).execute()
+        # Buscar todos os pedidos com endereços
+        orders_response = supabase.table("orders").select("*, users(email), addresses(*)").order("order_date", desc=True).execute()
         
         if not orders_response.data:
             return []
@@ -1931,16 +1931,23 @@ async def get_all_orders_admin(
                         "image_path": op["products"]["image_path"]
                     })
             
+            # Calcular subtotal dos produtos
+            subtotal = sum(float(p["valor"]) * p["quantity"] for p in products)
+            shipping_cost = float(order.get("shipping_cost", 0))
+            
             result.append({
                 "id": order["id"],
                 "order_date": order["order_date"],
                 "user_email": order["users"]["email"] if order["users"] else "N/A",
                 "total_amount": order["total_amount"],
+                "subtotal": subtotal,
+                "shipping_cost": shipping_cost,
                 "pending": order["pending"],
                 "sent": order.get("sent", False),
                 "active": order["active"],
                 "payment_link": order["payment_link"],
-                "tracking_code": order.get("tracking_code"),  # Adicionar código de rastreamento
+                "tracking_code": order.get("tracking_code"),
+                "delivery_address": order.get("addresses"),  # Endereço de entrega
                 "products": products
             })
         

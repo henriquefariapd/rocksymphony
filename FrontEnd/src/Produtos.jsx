@@ -320,7 +320,7 @@ function Produtos() {
                 <td>{produto.reference_code || '-'}</td>
                 <td>{produto.stamp || '-'}</td>
                 <td>{produto.release_year || '-'}</td>
-                <td>R$ {produto.valor}</td>
+                <td>R$ {parseFloat(produto.valor).toFixed(2)}</td>
                 <td>{produto.remaining}</td>
                 <td>
                   {produto.image_path ? (
