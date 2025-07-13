@@ -1892,6 +1892,47 @@ async def update_order_status(
         print(f"Erro ao atualizar status do pedido: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar status do pedido: {str(e)}")
 
+@app.post("/api/webhook/mercadopago")
+async def mercadopago_webhook(request: Request):
+    """Webhook para notificações do MercadoPago"""
+    try:
+        body = await request.body()
+        print(f"[DEBUG] Webhook MercadoPago recebido: {body}")
+        
+        # Parsear dados do webhook
+        data = await request.json()
+        
+        if data.get("type") == "payment":
+            payment_id = data.get("data", {}).get("id")
+            
+            if payment_id:
+                # Buscar detalhes do pagamento
+                payment_info = mp.payment().get(payment_id)
+                
+                if payment_info["status"] == 200:
+                    payment_data = payment_info["response"]
+                    external_reference = payment_data.get("external_reference")
+                    status = payment_data.get("status")
+                    
+                    print(f"[DEBUG] Pagamento {payment_id} - Status: {status} - Pedido: {external_reference}")
+                    
+                    if external_reference and status == "approved":
+                        # Atualizar pedido como pago
+                        supabase.table("orders").update({
+                            "pending": False,
+                            "active": True
+                        }).eq("id", external_reference).execute()
+                        
+                        print(f"[DEBUG] Pedido {external_reference} marcado como pago")
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"[DEBUG] Erro no webhook: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
+
 # ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
 # Rota para servir o frontend React
 @app.get("/")
