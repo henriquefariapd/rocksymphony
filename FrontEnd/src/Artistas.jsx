@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaPlus, FaSave, FaTimes, FaSearch } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import './Artistas.css';
 
 function Artistas() {
@@ -167,8 +168,12 @@ function Artistas() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/artists/${artist.id}`, {
+      const token = localStorage.getItem('access_token');
+      const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:8000'
+        : 'https://rock-symphony-91f7e39d835d.herokuapp.com';
+      
+      const response = await fetch(`${apiUrl}/api/artists/${artist.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -177,15 +182,15 @@ function Artistas() {
 
       if (response.ok) {
         const result = await response.json();
-        showMessage('success', result.message);
+        toast.success(result.message);
         fetchArtistas();
       } else {
-        const error = await response.json();
-        showMessage('error', error.detail || 'Erro ao excluir artista');
+        const errorData = await response.json();
+        toast.error(errorData.detail || 'Erro ao excluir artista');
       }
     } catch (error) {
       console.error('Erro ao excluir artista:', error);
-      showMessage('error', 'Erro ao excluir artista');
+      toast.error('Erro ao excluir artista');
     }
   };
 

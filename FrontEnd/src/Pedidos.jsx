@@ -8,6 +8,9 @@ const Pedidos = () => {
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [updatingOrder, setUpdatingOrder] = useState(null);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [trackingCode, setTrackingCode] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
   const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
@@ -78,8 +81,10 @@ const Pedidos = () => {
       const response = await fetch(`${apiUrl}/api/orders/${orderId}/status?sent=true`, {
         method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ tracking_code: trackingCode })
       });
 
       if (!response.ok) {
@@ -95,10 +100,15 @@ const Pedidos = () => {
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId 
-            ? { ...order, sent: true }
+            ? { ...order, sent: true, tracking_code: trackingCode }
             : order
         )
       );
+
+      // Fechar modal e limpar campos
+      setShowTrackingModal(false);
+      setTrackingCode("");
+      setSelectedOrderId(null);
 
     } catch (error) {
       toast.error("Erro ao registrar envio");
@@ -106,6 +116,11 @@ const Pedidos = () => {
     } finally {
       setUpdatingOrder(null);
     }
+  };
+
+  const openTrackingModal = (orderId) => {
+    setSelectedOrderId(orderId);
+    setShowTrackingModal(true);
   };
 
   const getOrderStatus = (order) => {
@@ -168,7 +183,7 @@ const Pedidos = () => {
                       className="register-shipment-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRegisterShipment(order.id);
+                        openTrackingModal(order.id);
                       }}
                       disabled={updatingOrder === order.id}
                     >
@@ -202,10 +217,60 @@ const Pedidos = () => {
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Exibir código de rastreamento se existir */}
+                  {order.tracking_code && (
+                    <div className="tracking-info">
+                      <h4>Informações de Envio:</h4>
+                      <p><strong>Código de Rastreamento:</strong> {order.tracking_code}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal para inserir código de rastreamento */}
+      {showTrackingModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Registrar Envio</h3>
+            <p>Pedido #{selectedOrderId}</p>
+            
+            <div className="form-group">
+              <label htmlFor="trackingCode">Código de Rastreamento dos Correios:</label>
+              <input
+                type="text"
+                id="trackingCode"
+                value={trackingCode}
+                onChange={(e) => setTrackingCode(e.target.value)}
+                placeholder="Ex: BR123456789BR"
+                maxLength={13}
+              />
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="btn-cancel"
+                onClick={() => {
+                  setShowTrackingModal(false);
+                  setTrackingCode("");
+                  setSelectedOrderId(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-confirm"
+                onClick={() => handleRegisterShipment(selectedOrderId)}
+                disabled={!trackingCode.trim() || updatingOrder === selectedOrderId}
+              >
+                {updatingOrder === selectedOrderId ? "Registrando..." : "Registrar Envio"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

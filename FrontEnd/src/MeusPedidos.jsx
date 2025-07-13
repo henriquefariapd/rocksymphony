@@ -195,6 +195,25 @@ const MeusPedidos = () => {
                   {/* Stepper de status do pedido */}
                   <OrderStepper pending={order.pending} sent={order.sent} />
                   
+                  {/* Informações de rastreamento se o pedido foi enviado */}
+                  {order.sent && order.tracking_code && (
+                    <div className="tracking-section">
+                      <h4>📦 Informações de Envio</h4>
+                      <div className="tracking-info">
+                        <p><strong>Status:</strong> Produto enviado</p>
+                        <p><strong>Código de Rastreamento:</strong> {order.tracking_code}</p>
+                        <a 
+                          href={`https://www2.correios.com.br/sistemas/rastreamento/ctrl/ctrlRastreamento.cfm?codigo=${order.tracking_code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tracking-link"
+                        >
+                          🔍 Rastrear Pedido nos Correios
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  
                   <h4>Produtos do pedido:</h4>
                   <div className="products-list">
                     {order.products.map((product) => (

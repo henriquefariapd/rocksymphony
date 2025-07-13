@@ -421,7 +421,7 @@ class ArtistUpdate(BaseModel):
 @app.post("/api/products")
 async def create_new_product(
     name: str = Form(...),
-    artist: str = Form(...),
+    artist_id: int = Form(...),
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
@@ -434,7 +434,7 @@ async def create_new_product(
 ):
     """Criar um novo produto (apenas admin)"""
     try:
-        print(f"[DEBUG] Criando produto: {name} - {artist}")
+        print(f"[DEBUG] Criando produto: {name} - artist_id: {artist_id}")
         print(f"[DEBUG] Usuário: {current_user['id']} (admin: {current_user.get('is_admin')})")
         
         # Verificar se é admin
@@ -495,7 +495,7 @@ async def create_new_product(
         # Criar novo produto no Supabase
         new_product = {
             "name": name,
-            "artist": artist,
+            "artist_id": artist_id,
             "description": description,
             "valor": float(valor),
             "remaining": remaining,
@@ -528,7 +528,7 @@ async def create_new_product(
 
 class ProductUpdate(BaseModel):
     name: str
-    artist: str
+    artist_id: int
     description: str
     valor: float
     remaining: int
@@ -541,7 +541,7 @@ class ProductUpdate(BaseModel):
 async def edit_product(
     product_id: int,
     name: str = Form(...),
-    artist: str = Form(...),
+    artist_id: int = Form(...),
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
@@ -555,7 +555,7 @@ async def edit_product(
     """Editar um produto existente (apenas admin)"""
     try:
         print(f"[DEBUG] Editando produto ID: {product_id}")
-        print(f"[DEBUG] Dados recebidos: name={name}, artist={artist}, valor={valor}, remaining={remaining}")
+        print(f"[DEBUG] Dados recebidos: name={name}, artist_id={artist_id}, valor={valor}, remaining={remaining}")
         print(f"[DEBUG] Novos campos: reference_code={reference_code}, stamp={stamp}, release_year={release_year}, country={country}")
         print(f"[DEBUG] Nova imagem: {file.filename if file else 'Nenhuma'}")
         
@@ -628,7 +628,7 @@ async def edit_product(
         # Atualizar produto no Supabase
         update_data = {
             "name": name,
-            "artist": artist,
+            "artist_id": artist_id,
             "description": description,
             "valor": valor,
             "remaining": remaining,
@@ -681,6 +681,19 @@ async def delete_product(
         print(f"[DEBUG] Produto encontrado: {product_name}")
         print(f"[DEBUG] Imagem: {image_path}")
         
+        # Verificar se existem pedidos associados a este produto
+        print(f"[DEBUG] Verificando pedidos associados ao produto...")
+        orders_response = supabase.table("order_products").select("*").eq("product_id", product_id).execute()
+        
+        if orders_response.data:
+            print(f"[DEBUG] Encontrados {len(orders_response.data)} pedido(s) associado(s) ao produto")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Não é possível excluir o produto '{product_name}'. Existem {len(orders_response.data)} pedido(s) associado(s) a este produto. Para manter a integridade dos dados históricos, produtos que já foram vendidos não podem ser removidos do sistema."
+            )
+        
+        print(f"[DEBUG] Nenhum pedido encontrado, prosseguindo com a exclusão...")
+        
         # Deletar produto do Supabase
         response = supabase.table("products").delete().eq("id", product_id).execute()
         
@@ -709,6 +722,50 @@ async def delete_product(
     except Exception as e:
         print(f"[DEBUG] Erro ao deletar produto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {str(e)}")
+
+@app.get("/api/products/{product_id}/can-delete")
+async def check_product_can_delete(
+    product_id: int, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Verificar se um produto pode ser deletado (apenas admin)"""
+    try:
+        print(f"[DEBUG] Verificando se produto {product_id} pode ser deletado")
+        print(f"[DEBUG] Usuário: {current_user['id']} (admin: {current_user.get('is_admin')})")
+        
+        # Verificar se é admin
+        if not current_user.get('is_admin'):
+            print(f"[DEBUG] Usuário não é admin")
+            raise HTTPException(status_code=403, detail="Apenas administradores podem verificar produtos")
+        
+        # Buscar produto
+        product_response = supabase.table("products").select("id, name").eq("id", product_id).execute()
+        
+        if not product_response.data:
+            print(f"[DEBUG] Produto não encontrado")
+            raise HTTPException(status_code=404, detail="Produto não encontrado")
+        
+        product = product_response.data[0]
+        product_name = product["name"]
+        
+        # Verificar se existem pedidos associados
+        orders_response = supabase.table("order_products").select("*").eq("product_id", product_id).execute()
+        
+        can_delete = not bool(orders_response.data)
+        orders_count = len(orders_response.data) if orders_response.data else 0
+        
+        return {
+            "can_delete": can_delete,
+            "product_name": product_name,
+            "orders_count": orders_count,
+            "message": "Produto pode ser excluído" if can_delete else f"Não é possível excluir este produto. Existem {orders_count} pedido(s) associado(s)"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao verificar produto: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao verificar produto: {str(e)}")
 
 # ===== ENDPOINTS DE ARTISTAS =====
 
@@ -846,21 +903,45 @@ async def delete_artist(
         artist = artist_response.data[0]
         artist_name = artist["name"]
         
-        # Verificar se existem produtos vinculados
-        products_response = supabase.table("products").select("id").eq("artist_id", artist_id).execute()
+        # Verificar se existem produtos vinculados ao artista
+        products_response = supabase.table("products").select("id, name").eq("artist_id", artist_id).execute()
         
         if products_response.data:
+            # Verificar se algum destes produtos tem pedidos associados
+            product_ids = [product["id"] for product in products_response.data]
+            
+            # Buscar se existem pedidos para estes produtos
+            order_products_response = supabase.table("order_products").select("product_id").in_("product_id", product_ids).execute()
+            
+            if order_products_response.data:
+                # Contar quantos produtos têm pedidos
+                products_with_orders = set(op["product_id"] for op in order_products_response.data)
+                total_orders = len(order_products_response.data)
+                
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Não é possível excluir o artista '{artist_name}'. "
+                           f"Existem {len(products_with_orders)} produto(s) deste artista com {total_orders} pedido(s) associado(s). "
+                           f"Para manter a integridade dos dados históricos, artistas com produtos já vendidos não podem ser removidos do sistema."
+                )
+            
+            # Se não há pedidos, mas há produtos, avisar sobre os produtos
             raise HTTPException(
                 status_code=400, 
-                detail=f"Não é possível deletar o artista '{artist_name}' pois existem {len(products_response.data)} produto(s) vinculado(s)"
+                detail=f"Não é possível excluir o artista '{artist_name}' pois existem {len(products_response.data)} produto(s) vinculado(s). "
+                       f"Exclua primeiro todos os produtos deste artista."
             )
         
-        # Deletar artista
+        # Deletar artista (não há produtos vinculados)
         response = supabase.table("artists").delete().eq("id", artist_id).execute()
         
         return {"message": f"Artista '{artist_name}' excluído com sucesso!"}
     
     except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DEBUG] Erro ao deletar artista: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar artista: {str(e)}")
         raise
     except Exception as e:
         print(f"[DEBUG] Erro ao deletar artista: {str(e)}")
@@ -1537,6 +1618,7 @@ async def get_user_orders(
                 "active": order["active"],
                 "payment_link": order.get("payment_link"),  # Adicionar payment_link
                 "total_amount": order.get("total_amount", total_value),  # Usar total_amount do banco ou calculado
+                "tracking_code": order.get("tracking_code"),  # Adicionar código de rastreamento
                 "products": products
             })
         
@@ -1754,6 +1836,7 @@ async def get_all_orders_admin(
                 "sent": order.get("sent", False),
                 "active": order["active"],
                 "payment_link": order["payment_link"],
+                "tracking_code": order.get("tracking_code"),  # Adicionar código de rastreamento
                 "products": products
             })
         
@@ -1766,6 +1849,7 @@ async def get_all_orders_admin(
 @app.put("/api/orders/{order_id}/status")
 async def update_order_status(
     order_id: int,
+    request: Request,
     pending: bool = None,
     sent: bool = None,
     current_user: dict = Depends(get_current_admin_user)
@@ -1781,6 +1865,15 @@ async def update_order_status(
             update_data["pending"] = pending
         if sent is not None:
             update_data["sent"] = sent
+            
+        # Verificar se há dados no body da requisição (tracking_code)
+        try:
+            body = await request.json()
+            if "tracking_code" in body and body["tracking_code"]:
+                update_data["tracking_code"] = body["tracking_code"]
+                print(f"[DEBUG] Código de rastreamento: {body['tracking_code']}")
+        except Exception as e:
+            print(f"[DEBUG] Nenhum body JSON ou erro ao processar: {e}")
             
         if not update_data:
             raise HTTPException(status_code=400, detail="Nenhum status fornecido para atualização")
