@@ -7,6 +7,7 @@ const Pedidos = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [updatingOrder, setUpdatingOrder] = useState(null);
 
   const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
@@ -64,6 +65,69 @@ const Pedidos = () => {
     });
   };
 
+  const handleRegisterShipment = async (orderId) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      toast.error("Usuário não autenticado. Por favor, faça login.");
+      return;
+    }
+
+    setUpdatingOrder(orderId);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}/status?sent=true`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Erro do servidor:", errorData);
+        throw new Error("Falha ao registrar envio");
+      }
+
+      const data = await response.json();
+      toast.success("Envio registrado com sucesso!");
+      
+      // Atualizar o pedido na lista local
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, sent: true }
+            : order
+        )
+      );
+
+    } catch (error) {
+      toast.error("Erro ao registrar envio");
+      console.error("Erro ao registrar envio:", error);
+    } finally {
+      setUpdatingOrder(null);
+    }
+  };
+
+  const getOrderStatus = (order) => {
+    if (order.sent) {
+      return "Enviado";
+    } else if (order.pending) {
+      return "Pendente";
+    } else {
+      return "Processado";
+    }
+  };
+
+  const getStatusClass = (order) => {
+    if (order.sent) {
+      return "status-sent";
+    } else if (order.pending) {
+      return "status-pending";
+    } else {
+      return "status-processed";
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -93,11 +157,28 @@ const Pedidos = () => {
                   <p>Cliente: {order.user_email}</p>
                   <p>Data: {formatDate(order.order_date)}</p>
                   <p>Total: R$ {parseFloat(order.total_amount).toFixed(2)}</p>
-                  <p>Status: {order.pending ? 'Pendente' : 'Processado'}</p>
+                  <p className={`order-status ${getStatusClass(order)}`}>
+                    Status: {getOrderStatus(order)}
+                  </p>
                 </div>
-                <button className="toggle-button">
-                  {expandedOrder === order.id ? <FaAngleUp /> : <FaAngleDown />}
-                </button>
+                <div className="order-actions">
+                  {/* Botão Registrar Envio - só aparece se o pedido foi processado mas ainda não enviado */}
+                  {!order.pending && !order.sent && (
+                    <button 
+                      className="register-shipment-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRegisterShipment(order.id);
+                      }}
+                      disabled={updatingOrder === order.id}
+                    >
+                      {updatingOrder === order.id ? "Registrando..." : "Registrar Envio"}
+                    </button>
+                  )}
+                  <button className="toggle-button">
+                    {expandedOrder === order.id ? <FaAngleUp /> : <FaAngleDown />}
+                  </button>
+                </div>
               </div>
               
               {expandedOrder === order.id && (

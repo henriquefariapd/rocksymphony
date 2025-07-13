@@ -339,7 +339,7 @@ function Home() {
             className="filter-select"
           >
             <option value="">Todos os Selos</option>
-            {filters.stamps.map(stamp => (
+            {filters.stamps && filters.stamps.map(stamp => (
               <option key={stamp} value={stamp}>{stamp}</option>
             ))}
           </select>
@@ -350,7 +350,7 @@ function Home() {
             className="filter-select"
           >
             <option value="">Todos os Anos</option>
-            {filters.release_years.map(year => (
+            {filters.release_years && filters.release_years.map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
@@ -361,7 +361,7 @@ function Home() {
             className="filter-select"
           >
             <option value="">Todos os Países</option>
-            {allCountries.map(country => (
+            {allCountries && allCountries.map(country => (
               <option key={country} value={country}>{country}</option>
             ))}
           </select>

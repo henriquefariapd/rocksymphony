@@ -55,6 +55,56 @@
   border-bottom: 1px solid #e9ecef;
 }
 
+.order-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.register-shipment-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.register-shipment-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.register-shipment-btn:active {
+  transform: translateY(0);
+}
+
+.register-shipment-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.order-status {
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #ffc107;
+}
+
+.status-processed {
+  color: #17a2b8;
+}
+
+.status-sent {
+  color: #28a745;
+}
+
 .order-info h3 {
   margin: 0 0 8px 0;
   color: #333;
@@ -160,7 +210,18 @@
   
   .order-header {
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .order-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .register-shipment-btn {
+    flex: 1;
+    min-width: 140px;
   }
   
   .toggle-button {

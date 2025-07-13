@@ -1103,7 +1103,7 @@ def get_cart_products(current_user: dict = Depends(get_current_user)):
         # Buscar produtos no carrinho com join
         print('Buscando produtos no carrinho...')
         cart_products = supabase.table("shoppingcart_products").select(
-            "*, product:products(*)"
+            "*, product:products(*, artists(name))"
         ).eq("shoppingcart_id", cart_id).execute()
         
         print(f'Produtos encontrados: {len(cart_products.data)}')
@@ -1112,10 +1112,16 @@ def get_cart_products(current_user: dict = Depends(get_current_user)):
         formatted_products = []
         for item in cart_products.data:
             product = item["product"]
+            
+            # Buscar nome do artista
+            artist_name = "Artista não informado"
+            if product.get("artists"):
+                artist_name = product["artists"]["name"]
+            
             formatted_product = {
                 "id": product["id"],
                 "name": product["name"],
-                "artist": product["artist"],
+                "artist": artist_name,
                 "valor": float(product["valor"]),
                 "quantity": item["quantity"],
                 "image_path": product.get("image_path")
@@ -1250,7 +1256,7 @@ def create_order(
         # Obter produtos do carrinho
         print("Buscando produtos do carrinho...")
         cart_products_response = supabase.table("shoppingcart_products").select(
-            "*, product:products(*)"
+            "*, product:products(*, artists(name))"
         ).eq("shoppingcart_id", cart_id).execute()
 
         if not cart_products_response.data:
@@ -1300,6 +1306,58 @@ def create_order(
             
             supabase.table("order_products").insert(order_product_data).execute()
 
+        # Criar link de pagamento no MercadoPago
+        payment_link = None
+        try:
+            # Preparar itens para o MercadoPago
+            items = []
+            for cart_item in cart_products_response.data:
+                product = cart_item["product"]
+                
+                # Buscar nome do artista
+                artist_name = "Artista não informado"
+                if product.get("artists"):
+                    artist_name = product["artists"]["name"]
+                
+                items.append({
+                    "title": f"{product['name']} - {artist_name}",
+                    "quantity": cart_item["quantity"],
+                    "currency_id": "BRL",
+                    "unit_price": float(product["valor"])
+                })
+            
+            # Dados do pagamento
+            payment_data = {
+                "items": items,
+                "payer": {
+                    "email": current_user.get("email", "usuario@email.com")
+                },
+                "external_reference": str(new_order_id),
+                "back_url": {
+                    "success": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
+                    "failure": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
+                    "pending": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos"
+                }
+            }
+            
+            # Criar preferência no MercadoPago
+            result = mp.preference().create(payment_data)
+            
+            if "init_point" in result["response"]:
+                payment_link = result["response"]["init_point"]
+                print(f"Link de pagamento criado: {payment_link}")
+                
+                # Atualizar pedido com o link de pagamento
+                supabase.table("orders").update({
+                    "payment_link": payment_link
+                }).eq("id", new_order_id).execute()
+            else:
+                print(f"Erro ao criar link de pagamento: {result}")
+                
+        except Exception as payment_error:
+            print(f"Erro ao criar pagamento MercadoPago: {str(payment_error)}")
+            # Não falha o pedido se o pagamento não funcionar
+
         # Limpar carrinho
         print("Limpando carrinho...")
         supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).execute()
@@ -1309,12 +1367,14 @@ def create_order(
             "message": "Pedido criado com sucesso",
             "order_id": new_order_id,
             "total_amount": total_value,
-            "redirect_to": "/minhas-reservas",
+            "payment_link": payment_link,
+            "redirect_to": "/meus-pedidos" if payment_link else "/minhas-reservas",
             "order_details": {
                 "id": new_order_id,
                 "user_id": user_id,
                 "address_id": address_id,
                 "total_amount": total_value,
+                "payment_link": payment_link,
                 "pending": True,
                 "active": True,
                 "created_at": order_response.data[0].get("created_at")
@@ -1467,7 +1527,7 @@ async def get_all_orders(
     try:
         # Buscar todos os pedidos com informações do usuário
         orders_response = supabase.table("orders").select(
-            "*, users(usuario), order_products(*, products(*))"
+            "*, users(usuario), order_products(*, products(*, artists(name)))"
         ).execute()
         
         result = []
@@ -1480,10 +1540,15 @@ async def get_all_orders(
                 quantity = order_product["quantity"]
                 price_at_time = float(order_product.get("price_at_time", product["valor"]))
                 
+                # Buscar nome do artista
+                artist_name = "Artista não informado"
+                if product.get("artists"):
+                    artist_name = product["artists"]["name"]
+                
                 products.append({
                     "id": product["id"],
                     "name": product["name"],
-                    "artist": product["artist"],
+                    "artist": artist_name,
                     "quantity": quantity,
                     "valor": price_at_time,
                     "image_path": product.get("image_path")
@@ -1905,135 +1970,6 @@ async def debug_test_user_email(
 
 # ===== ENDPOINTS DE PEDIDOS SUPABASE =====
 
-@app.post("/api/create_order")
-async def create_order_supabase(
-    current_user: dict = Depends(get_current_user)
-):
-    """Criar pedido a partir do carrinho do usuário no Supabase"""
-    try:
-        user_id = current_user["id"]
-        print(f"[DEBUG] Criando pedido para usuário: {user_id}")
-        
-        # Primeiro, buscar o carrinho do usuário
-        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
-        
-        if not cart_response.data:
-            raise HTTPException(status_code=400, detail="Carrinho não encontrado")
-        
-        cart_id = cart_response.data[0]["id"]
-        print(f"[DEBUG] Carrinho encontrado: {cart_id}")
-        
-        # Agora buscar produtos no carrinho usando o cart_id
-        cart_products_response = supabase.table("shoppingcart_products").select("*, products(*)").eq("shoppingcart_id", cart_id).execute()
-        
-        if not cart_products_response.data:
-            raise HTTPException(status_code=400, detail="Carrinho está vazio")
-        
-        cart_products = cart_products_response.data
-        print(f"[DEBUG] Produtos no carrinho: {len(cart_products)}")
-        
-        # Calcular total
-        total_amount = sum(item["products"]["valor"] * item["quantity"] for item in cart_products)
-        print(f"[DEBUG] Total do pedido: R$ {total_amount}")
-        
-        # Criar pedido
-        order_data = {
-            "user_id": user_id,
-            "order_date": date.today().isoformat(),
-            "payment_link": None,
-            "pending": True,
-            "active": True,
-            "total_amount": total_amount
-        }
-        
-        order_response = supabase.table("orders").insert(order_data).execute()
-        
-        if not order_response.data:
-            raise HTTPException(status_code=500, detail="Erro ao criar pedido")
-        
-        order_id = order_response.data[0]["id"]
-        print(f"[DEBUG] Pedido criado com ID: {order_id}")
-        
-        # Criar order_products
-        order_products_data = []
-        for cart_item in cart_products:
-            product_price = cart_item["products"]["valor"]
-            print(f"[DEBUG] Produto {cart_item['product_id']}: preço={product_price}")
-            order_products_data.append({
-                "order_id": order_id,
-                "product_id": cart_item["product_id"],
-                "quantity": cart_item["quantity"],
-                "price_at_time": product_price  # Adicionar preço no momento da compra
-            })
-        
-        print(f"[DEBUG] Dados dos produtos do pedido: {order_products_data}")
-        
-        # Inserir order_products
-        order_products_response = supabase.table("order_products").insert(order_products_data).execute()
-        
-        if not order_products_response.data:
-            raise HTTPException(status_code=500, detail="Erro ao criar produtos do pedido")
-        
-        # Criar link de pagamento no MercadoPago
-        payment_link = None
-        try:
-            # Preparar itens para o MercadoPago
-            items = []
-            for cart_item in cart_products:
-                product = cart_item["products"]
-                items.append({
-                    "title": f"{product['name']} - {product['artist']}",
-                    "quantity": cart_item["quantity"],
-                    "currency_id": "BRL",
-                    "unit_price": float(product["valor"])
-                })
-            
-            # Dados do pagamento
-            payment_data = {
-                "items": items,
-                "payer": {
-                    "email": current_user.get("email", "usuario@email.com")
-                },
-                "external_reference": str(order_id),
-                "back_url": {
-                    "success": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
-                    "failure": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos",
-                    "pending": "https://rocksymphony-3f7b8e8b3afd.herokuapp.com/meus-pedidos" if "herokuapp" in os.environ.get("HTTP_HOST", "") else "http://localhost:5173/meus-pedidos"
-                }
-            }
-            
-            # Criar preferência no MercadoPago
-            result = mp.preference().create(payment_data)
-            
-            if "init_point" in result["response"]:
-                payment_link = result["response"]["init_point"]
-                print(f"[DEBUG] Link de pagamento criado: {payment_link}")
-                
-                # Atualizar pedido com o link de pagamento
-                supabase.table("orders").update({
-                    "payment_link": payment_link
-                }).eq("id", order_id).execute()
-            else:
-                print(f"[DEBUG] Erro ao criar link de pagamento: {result}")
-                
-        except Exception as payment_error:
-            print(f"[DEBUG] Erro ao criar pagamento MercadoPago: {str(payment_error)}")
-            # Não falha o pedido se o pagamento não funcionar
-        
-        # Limpar carrinho - deletar produtos do carrinho usando cart_id
-        delete_response = supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).execute()
-        print(f"[DEBUG] Carrinho limpo")
-        
-        return {
-            "message": "Pedido criado com sucesso!",
-            "order_id": order_id,
-            "total_amount": total_amount,
-            "payment_link": payment_link
-        }
-        
-    except Exception as e:
-        print(f"[DEBUG] Erro ao criar pedido: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar pedido: {str(e)}")
 
 @app.get("/api/my_orders")
 async def get_my_orders(
@@ -2136,6 +2072,7 @@ async def get_all_orders_admin(
                 "user_email": order["users"]["email"] if order["users"] else "N/A",
                 "total_amount": order["total_amount"],
                 "pending": order["pending"],
+                "sent": order.get("sent", False),
                 "active": order["active"],
                 "payment_link": order["payment_link"],
                 "products": products
