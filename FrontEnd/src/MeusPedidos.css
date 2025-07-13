@@ -41,8 +41,33 @@
   transition: box-shadow 0.3s ease;
 }
 
+.order-card.newest-order {
+  border: 2px solid #8B1538;
+  background: linear-gradient(135deg, #fef5f7 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(139, 21, 56, 0.15);
+  position: relative;
+}
+
+.order-card.newest-order::before {
+  content: "MAIS RECENTE";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #8B1538;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 10;
+}
+
 .order-card:hover {
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.order-card.newest-order:hover {
+  box-shadow: 0 6px 16px rgba(139, 21, 56, 0.25);
 }
 
 .order-header {
@@ -54,10 +79,20 @@
   cursor: pointer;
   border-bottom: 1px solid #e9ecef;
   transition: background-color 0.3s ease;
+  position: relative;
+}
+
+.newest-order .order-header {
+  background: linear-gradient(135deg, #f8f0f2 0%, #f8f9fa 100%);
+  border-bottom: 1px solid #d6a8b8;
 }
 
 .order-header:hover {
   background-color: #e9ecef;
+}
+
+.newest-order .order-header:hover {
+  background: linear-gradient(135deg, #f0e6ea 0%, #e9ecef 100%);
 }
 
 .order-info h3 {

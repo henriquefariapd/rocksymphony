@@ -160,35 +160,55 @@ def get_user_from_supabase(current_user: dict, db: Session):
         print(f"Buscando usuário com ID: {current_user['id']}")
         print(f"Tipo do ID: {type(current_user['id'])}")
         
-        # Tentar query simples primeiro
-        print("Executando query...")
-        user = db.query(User).filter(User.id == current_user["id"]).first()
-        print(f"Query executada. Usuário encontrado: {user}")
+        # CORREÇÃO: Usar Supabase diretamente ao invés de SQLAlchemy
+        print("Executando query no Supabase...")
+        user_response = supabase.table("users").select("*").eq("id", current_user["id"]).execute()
+        print(f"Query executada. Resposta: {user_response}")
         
-        if not user:
-            print("Usuário não encontrado, criando novo...")
+        if user_response.data and len(user_response.data) > 0:
+            user_data = user_response.data[0]
+            print(f"Usuário encontrado: {user_data}")
+            
+            # Criar objeto User-like para compatibilidade
+            class UserLike:
+                def __init__(self, data):
+                    self.id = data["id"]
+                    self.usuario = data.get("usuario", "")
+                    self.email = data.get("email", "")
+                    self.is_admin = data.get("is_admin", False)
+            
+            user = UserLike(user_data)
+            print(f"Objeto User recuperado e instanciado: {user.id}")
+            return user
+        else:
+            print("Usuário não encontrado no Supabase, criando novo...")
             # Se não encontrar, criar um novo usuário com os dados do Supabase
             user_data = {
                 "id": current_user["id"],
                 "usuario": current_user.get("usuario", ""),
+                "email": current_user.get("email", ""),
                 "is_admin": current_user.get("is_admin", False)
             }
             print(f"Dados para criar usuário: {user_data}")
             
-            user = User(**user_data)
-            print("Objeto User criado")
+            # Inserir no Supabase
+            insert_response = supabase.table("users").insert(user_data).execute()
+            print(f"Usuário inserido: {insert_response}")
             
-            db.add(user)
-            print("User adicionado à sessão")
-            
-            db.commit()
-            print("Commit realizado")
-            
-            db.refresh(user)
-            print(f"Usuário criado e refreshed: {user}")
-        
-        print(f"Retornando usuário: {user.id}")
-        return user
+            if insert_response.data:
+                # Criar objeto User-like
+                class UserLike:
+                    def __init__(self, data):
+                        self.id = data["id"]
+                        self.usuario = data.get("usuario", "")
+                        self.email = data.get("email", "")
+                        self.is_admin = data.get("is_admin", False)
+                
+                user = UserLike(insert_response.data[0])
+                print(f"Usuário criado: {user.id}")
+                return user
+            else:
+                raise Exception("Erro ao criar usuário no Supabase")
         
     except Exception as e:
         print(f"ERRO em get_user_from_supabase: {str(e)}")
@@ -196,7 +216,6 @@ def get_user_from_supabase(current_user: dict, db: Session):
         import traceback
         traceback.print_exc()
         raise
-
 # Função helper para importar supabase (compatível com local e Heroku)
 def get_supabase():
     """Importa o cliente supabase (compatível com local e Heroku)"""
@@ -554,6 +573,232 @@ async def delete_product(
         print(f"[DEBUG] Erro ao deletar produto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao excluir produto: {str(e)}")
 
+# ===== ENDPOINTS DE ENDEREÇOS =====
+
+from pydantic import BaseModel
+from typing import Optional
+
+class AddressCreate(BaseModel):
+    cep: str
+    street: str
+    number: str
+    complement: Optional[str] = None
+    neighborhood: str
+    city: str
+    state: str
+    country: str = "Brasil"
+    receiver_name: str
+    is_default: bool = False
+
+class AddressUpdate(BaseModel):
+    cep: Optional[str] = None
+    street: Optional[str] = None
+    number: Optional[str] = None
+    complement: Optional[str] = None
+    neighborhood: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    receiver_name: Optional[str] = None
+    is_default: Optional[bool] = None
+
+@app.get("/api/viacep/{cep}")
+async def get_address_by_cep(cep: str):
+    """Buscar endereço pelo CEP usando API do ViaCEP"""
+    try:
+        import requests
+        # Remove caracteres não numéricos do CEP
+        clean_cep = ''.join(filter(str.isdigit, cep))
+        
+        if len(clean_cep) != 8:
+            raise HTTPException(status_code=400, detail="CEP deve conter 8 dígitos")
+        
+        # Consulta a API do ViaCEP
+        response = requests.get(f"https://viacep.com.br/ws/{clean_cep}/json/")
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Erro ao consultar CEP")
+        
+        data = response.json()
+        
+        if 'erro' in data:
+            raise HTTPException(status_code=404, detail="CEP não encontrado")
+        
+        return {
+            "cep": data.get("cep", ""),
+            "street": data.get("logradouro", ""),
+            "neighborhood": data.get("bairro", ""),
+            "city": data.get("localidade", ""),
+            "state": data.get("uf", ""),
+            "country": "Brasil"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar CEP: {str(e)}")
+
+@app.post("/api/addresses")
+async def create_address(
+    address: AddressCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Criar um novo endereço para o usuário"""
+    try:
+        user_id = current_user["id"]
+        
+        # Construir endereço completo
+        full_address = f"{address.street}, {address.number}"
+        if address.complement:
+            full_address += f", {address.complement}"
+        full_address += f", {address.neighborhood}, {address.city} - {address.state}, {address.cep}"
+        
+        # Se este endereço está sendo marcado como padrão, desmarcar outros
+        if address.is_default:
+            # Desmarcar outros endereços como padrão
+            supabase.table("addresses").update({"is_default": False}).eq("user_id", user_id).execute()
+        
+        # Criar novo endereço
+        address_data = {
+            "user_id": user_id,
+            "cep": address.cep,
+            "street": address.street,
+            "number": address.number,
+            "complement": address.complement,
+            "neighborhood": address.neighborhood,
+            "city": address.city,
+            "state": address.state,
+            "country": address.country,
+            "receiver_name": address.receiver_name,
+            "full_address": full_address,
+            "is_default": address.is_default
+        }
+        
+        response = supabase.table("addresses").insert(address_data).execute()
+        
+        if response.data:
+            return {"message": "Endereço criado com sucesso!", "address": response.data[0]}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao criar endereço")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar endereço: {str(e)}")
+
+@app.get("/api/addresses")
+async def get_user_addresses(
+    current_user: dict = Depends(get_current_user)
+):
+    """Obter todos os endereços do usuário"""
+    try:
+        user_id = current_user["id"]
+        
+        response = supabase.table("addresses").select("*").eq("user_id", user_id).order("is_default", desc=True).execute()
+        
+        return response.data if response.data else []
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar endereços: {str(e)}")
+
+@app.put("/api/addresses/{address_id}")
+async def update_address(
+    address_id: int,
+    address: AddressUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Atualizar um endereço existente"""
+    try:
+        user_id = current_user["id"]
+        
+        # Verificar se o endereço pertence ao usuário
+        existing_address = supabase.table("addresses").select("*").eq("id", address_id).eq("user_id", user_id).execute()
+        
+        if not existing_address.data:
+            raise HTTPException(status_code=404, detail="Endereço não encontrado")
+        
+        # Preparar dados para atualização
+        update_data = {}
+        for field, value in address.dict(exclude_unset=True).items():
+            if value is not None:
+                update_data[field] = value
+        
+        # Se este endereço está sendo marcado como padrão, desmarcar outros
+        if address.is_default:
+            supabase.table("addresses").update({"is_default": False}).eq("user_id", user_id).execute()
+        
+        # Reconstruir endereço completo se necessário
+        if any(field in update_data for field in ["street", "number", "complement", "neighborhood", "city", "state", "cep"]):
+            old_data = existing_address.data[0]
+            # Usar dados novos ou antigos para construir o endereço completo
+            street = update_data.get("street", old_data["street"])
+            number = update_data.get("number", old_data["number"])
+            complement = update_data.get("complement", old_data.get("complement"))
+            neighborhood = update_data.get("neighborhood", old_data["neighborhood"])
+            city = update_data.get("city", old_data["city"])
+            state = update_data.get("state", old_data["state"])
+            cep = update_data.get("cep", old_data["cep"])
+            
+            full_address = f"{street}, {number}"
+            if complement:
+                full_address += f", {complement}"
+            full_address += f", {neighborhood}, {city} - {state}, {cep}"
+            update_data["full_address"] = full_address
+        
+        response = supabase.table("addresses").update(update_data).eq("id", address_id).eq("user_id", user_id).execute()
+        
+        if response.data:
+            return {"message": "Endereço atualizado com sucesso!", "address": response.data[0]}
+        else:
+            raise HTTPException(status_code=500, detail="Erro ao atualizar endereço")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar endereço: {str(e)}")
+
+@app.delete("/api/addresses/{address_id}")
+async def delete_address(
+    address_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Deletar um endereço"""
+    try:
+        user_id = current_user["id"]
+        
+        # Verificar se o endereço pertence ao usuário
+        existing_address = supabase.table("addresses").select("*").eq("id", address_id).eq("user_id", user_id).execute()
+        
+        if not existing_address.data:
+            raise HTTPException(status_code=404, detail="Endereço não encontrado")
+        
+        response = supabase.table("addresses").delete().eq("id", address_id).eq("user_id", user_id).execute()
+        
+        return {"message": "Endereço deletado com sucesso!"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar endereço: {str(e)}")
+
+@app.post("/api/addresses/{address_id}/set-default")
+async def set_default_address(
+    address_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Definir um endereço como padrão"""
+    try:
+        user_id = current_user["id"]
+        
+        # Verificar se o endereço pertence ao usuário
+        existing_address = supabase.table("addresses").select("*").eq("id", address_id).eq("user_id", user_id).execute()
+        
+        if not existing_address.data:
+            raise HTTPException(status_code=404, detail="Endereço não encontrado")
+        
+        # Desmarcar todos os endereços como padrão
+        supabase.table("addresses").update({"is_default": False}).eq("user_id", user_id).execute()
+        
+        # Marcar o endereço selecionado como padrão
+        response = supabase.table("addresses").update({"is_default": True}).eq("id", address_id).eq("user_id", user_id).execute()
+        
+        return {"message": "Endereço definido como padrão!"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao definir endereço padrão: {str(e)}")
+
 # ===== ENDPOINTS DE CARRINHO =====
 
 class AddProductToCartRequest(BaseModel):
@@ -775,70 +1020,165 @@ def remove_product_from_cart(
 
 @app.post("/api/handle_checkout")
 def create_order(
-    db: Session = Depends(get_db_session), 
+    order_data: dict,
     current_user: dict = Depends(get_current_user)
 ):
     """Criar pedido a partir do carrinho"""
-    user = get_user_from_supabase(current_user, db)
-    shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == user.id).first()
-
-    if not shopping_cart:
-        raise HTTPException(status_code=404, detail="Carrinho não encontrado")
-
-    # Obter os produtos do carrinho
-    cart_products = db.query(ShoppingCartProduct).filter(
-        ShoppingCartProduct.shoppingcart_id == shopping_cart.id
-    ).all()
-
-    if not cart_products:
-        raise HTTPException(status_code=400, detail="Carrinho está vazio")
-
-    # Criar o pedido
-    new_order = Order(
-        order_date=date.today(),
-        user_id=user.id,
-        payment_link=None,
-        pending=True,
-        active=True
-    )
-    db.add(new_order)
-    db.commit()
-    db.refresh(new_order)
-
-    # Adicionar produtos ao pedido
-    total_value = 0
-    for cart_product in cart_products:
-        product = db.query(Product).filter(Product.id == cart_product.product_id).first()
+    try:
+        print("=== DEBUG HANDLE_CHECKOUT ===")
+        print(f"Dados recebidos: {order_data}")
+        print(f"Usuário: {current_user['id']}")
         
-        order_product = OrderProduct(
-            order_id=new_order.id,
-            product_id=cart_product.product_id,
-            quantity=cart_product.quantity
-        )
-        db.add(order_product)
+        user_id = current_user["id"]
         
-        total_value += product.valor * cart_product.quantity
+        # Verificar se o endereço foi fornecido
+        address_id = order_data.get("address_id")
+        if not address_id:
+            raise HTTPException(status_code=400, detail="Endereço de entrega é obrigatório")
 
-    # Limpar carrinho
-    for cart_product in cart_products:
-        db.delete(cart_product)
+        # Verificar se o endereço pertence ao usuário
+        print(f"Verificando endereço {address_id} para usuário {user_id}")
+        address_response = supabase.table("addresses").select("*").eq("id", address_id).eq("user_id", user_id).execute()
+        if not address_response.data:
+            raise HTTPException(status_code=404, detail="Endereço não encontrado ou não pertence ao usuário")
 
-    db.commit()
-    
-    return {
-        "message": "Pedido criado com sucesso",
-        "order_id": new_order.id,
-        "total_value": total_value
-    }
+        # Buscar carrinho do usuário
+        print("Buscando carrinho do usuário...")
+        cart_response = supabase.table("shoppingcarts").select("*").eq("user_id", user_id).execute()
+        
+        if not cart_response.data:
+            raise HTTPException(status_code=404, detail="Carrinho não encontrado")
+        
+        cart_id = cart_response.data[0]["id"]
+        print(f"Carrinho encontrado: {cart_id}")
+
+        # Obter produtos do carrinho
+        print("Buscando produtos do carrinho...")
+        cart_products_response = supabase.table("shoppingcart_products").select(
+            "*, product:products(*)"
+        ).eq("shoppingcart_id", cart_id).execute()
+
+        if not cart_products_response.data:
+            raise HTTPException(status_code=400, detail="Carrinho está vazio")
+
+        print(f"Produtos no carrinho: {len(cart_products_response.data)}")
+
+        # Calcular total
+        total_value = 0
+        for cart_item in cart_products_response.data:
+            product = cart_item["product"]
+            quantity = cart_item["quantity"]
+            total_value += float(product["valor"]) * quantity
+
+        print(f"Total calculado: {total_value}")
+
+        # Criar o pedido no Supabase
+        print("Criando pedido...")
+        order_data_db = {
+            "user_id": user_id,
+            "address_id": address_id,
+            "total_amount": total_value,
+            "pending": True,
+            "active": True
+        }
+        
+        order_response = supabase.table("orders").insert(order_data_db).execute()
+        
+        if not order_response.data:
+            raise HTTPException(status_code=500, detail="Erro ao criar pedido")
+        
+        new_order_id = order_response.data[0]["id"]
+        print(f"Pedido criado: {new_order_id}")
+
+        # Adicionar produtos ao pedido
+        print("Adicionando produtos ao pedido...")
+        for cart_item in cart_products_response.data:
+            product = cart_item["product"]
+            quantity = cart_item["quantity"]
+            
+            order_product_data = {
+                "order_id": new_order_id,
+                "product_id": product["id"],
+                "quantity": quantity,
+                "price_at_time": float(product["valor"])
+            }
+            
+            supabase.table("order_products").insert(order_product_data).execute()
+
+        # Limpar carrinho
+        print("Limpando carrinho...")
+        supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).execute()
+        
+        print("Pedido criado com sucesso!")
+        return {
+            "message": "Pedido criado com sucesso",
+            "order_id": new_order_id,
+            "total_amount": total_value,
+            "redirect_to": "/minhas-reservas",
+            "order_details": {
+                "id": new_order_id,
+                "user_id": user_id,
+                "address_id": address_id,
+                "total_amount": total_value,
+                "pending": True,
+                "active": True,
+                "created_at": order_response.data[0].get("created_at")
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Erro ao criar pedido: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro ao criar pedido: {str(e)}")
 
 @app.get("/api/orders")
 async def get_user_orders(
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db_session)
+    current_user: dict = Depends(get_current_user)
 ):
-    """Obter pedidos do usuário"""
-    user = get_user_from_supabase(current_user, db)
-    orders = db.query(Order).filter(Order.user_id == user.id).all()
+    """Obter pedidos do usuário usando Supabase"""
+    try:
+        user_id = current_user["id"]
+        
+        # Buscar pedidos do usuário
+        orders_response = supabase.table("orders").select(
+            "*, order_products(*, product:products(*))"
+        ).eq("user_id", user_id).execute()
+        
+        result = []
+        for order in orders_response.data:
+            products = []
+            total_value = 0
+            
+            for order_product in order.get("order_products", []):
+                product = order_product["product"]
+                quantity = order_product["quantity"]
+                price_at_time = float(order_product.get("price_at_time", product["valor"]))
+                
+                products.append({
+                    "name": product["name"],
+                    "artist": product["artist"],
+                    "quantity": quantity,
+                    "valor": price_at_time
+                })
+                total_value += price_at_time * quantity
+            
+            result.append({
+                "id": order["id"],
+                "order_date": order["order_date"],
+                "pending": order["pending"],
+                "active": order["active"],
+                "products": products,
+                "total_value": total_value
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"Erro ao buscar pedidos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {str(e)}")
     
     result = []
     for order in orders:
@@ -1580,145 +1920,3 @@ async def get_all_orders_admin(
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
-
-# ===== ENDPOINTS DE PRODUTOS COM FILTROS =====
-
-@app.get("/api/products/search")
-async def search_products(
-    q: str = "",  # Busca por nome ou artista
-    country: str = "",  # Filtro por país
-    stamp: str = "",  # Filtro por selo
-    release_year: int = None,  # Filtro por ano
-    current_user: dict = Depends(get_current_user_optional)
-):
-    """Buscar produtos com filtros"""
-    try:
-        user_id = current_user['id'] if current_user else "anônimo"
-        print(f"[DEBUG] Buscando produtos para usuário: {user_id}")
-        print(f"[DEBUG] Filtros: q='{q}', country='{country}', stamp='{stamp}', release_year={release_year}")
-        
-        # Construir query base
-        query = supabase.table("products").select("*")
-        
-        # Filtro por busca textual (nome ou artista)
-        if q:
-            # No Supabase, usar ilike para busca case-insensitive
-            query = query.or_(f"name.ilike.%{q}%,artist.ilike.%{q}%")
-        
-        # Filtros por campos específicos
-        if country:
-            query = query.eq("country", country)
-        
-        if stamp:
-            query = query.eq("stamp", stamp)
-        
-        if release_year:
-            query = query.eq("release_year", release_year)
-        
-        # Executar query
-        response = query.execute()
-        
-        print(f"[DEBUG] Produtos encontrados: {len(response.data) if response.data else 0}")
-        
-        if response.data:
-            return response.data
-        else:
-            return []
-            
-    except Exception as e:
-        print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
-
-@app.get("/api/products/filters")
-async def get_product_filters():
-    """Obter opções para filtros de produtos"""
-    try:
-        # Buscar valores únicos para os filtros
-        products_response = supabase.table("products").select("country,stamp,release_year").execute()
-        
-        if not products_response.data:
-            return {"countries": [], "stamps": [], "release_years": []}
-        
-        # Extrair valores únicos
-        countries = set()
-        stamps = set()
-        release_years = set()
-        
-        for product in products_response.data:
-            if product.get("country"):
-                countries.add(product["country"])
-            if product.get("stamp"):
-                stamps.add(product["stamp"])
-            if product.get("release_year"):
-                release_years.add(product["release_year"])
-        
-        return {
-            "countries": sorted(list(countries)),
-            "stamps": sorted(list(stamps)),
-            "release_years": sorted(list(release_years), reverse=True)
-        }
-        
-    except Exception as e:
-        print(f"[DEBUG] Erro ao buscar filtros: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar filtros: {str(e)}")
-
-# ===== WEBHOOK MERCADOPAGO =====
-
-@app.post("/api/webhook/mercadopago")
-async def mercadopago_webhook(request: Request):
-    """Webhook para notificações do MercadoPago"""
-    try:
-        body = await request.body()
-        print(f"[DEBUG] Webhook MercadoPago recebido: {body}")
-        
-        # Parsear dados do webhook
-        data = await request.json()
-        
-        if data.get("type") == "payment":
-            payment_id = data.get("data", {}).get("id")
-            
-            if payment_id:
-                # Buscar detalhes do pagamento
-                payment_info = mp.payment().get(payment_id)
-                
-                if payment_info["status"] == 200:
-                    payment_data = payment_info["response"]
-                    external_reference = payment_data.get("external_reference")
-                    status = payment_data.get("status")
-                    
-                    print(f"[DEBUG] Pagamento {payment_id} - Status: {status} - Pedido: {external_reference}")
-                    
-                    if external_reference and status == "approved":
-                        # Atualizar pedido como pago
-                        supabase.table("orders").update({
-                            "pending": False,
-                            "active": True
-                        }).eq("id", external_reference).execute()
-                        
-                        print(f"[DEBUG] Pedido {external_reference} marcado como pago")
-        
-        return {"status": "ok"}
-        
-    except Exception as e:
-        print(f"[DEBUG] Erro no webhook: {str(e)}")
-        return {"status": "error", "message": str(e)}
-
-# ===== ROTAS DE FRONTEND (DEVEM SER AS ÚLTIMAS) =====
-# Rota para servir o frontend React
-@app.get("/")
-@app.get("/{full_path:path}")
-def serve_frontend(full_path: str = None):
-    # Caminho para o arquivo index.html do frontend buildado
-    frontend_path = Path(os.getcwd()) / "FrontEnd" / "dist" / "index.html"
-    
-    if frontend_path.exists():
-        return FileResponse(frontend_path)
-    else:
-        # Fallback para desenvolvimento - retorna informações da API
-        return {"message": "Rock Symphony API - Marketplace de CDs de Rock", "version": "1.0.0", "note": "Frontend não encontrado. Execute 'npm run build' no FrontEnd para gerar os arquivos."}
-
-# ===== FINAL DO ARQUIVO =====
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

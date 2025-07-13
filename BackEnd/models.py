@@ -70,6 +70,7 @@ class User(Base):
     
     orders = relationship("Order", back_populates="user")
     shoppingcarts = relationship("ShoppingCart", back_populates="user")
+    addresses = relationship("Address", back_populates="user")
 
 # Modelo de Produto (CDs de Rock)
 class Product(Base):
@@ -99,12 +100,14 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     order_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False, index=True)
     payment_link = Column(String(500), nullable=True)
     pending = Column(Boolean, default=True)
     active = Column(Boolean, default=True)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
     
     user = relationship("User", back_populates="orders")
+    address = relationship("Address")
     products = relationship("OrderProduct", back_populates="order")
 
 # Modelo de Carrinho de Compras
@@ -142,6 +145,28 @@ class ShoppingCartProduct(Base):
     
     shoppingcart = relationship("ShoppingCart", back_populates="products")
     product = relationship("Product", back_populates="shoppingcarts")
+
+# Modelo de Endereços
+class Address(Base):
+    __tablename__ = "addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    cep = Column(String(10), nullable=False)
+    street = Column(String(255), nullable=False)
+    number = Column(String(20), nullable=False)
+    complement = Column(String(100), nullable=True)
+    neighborhood = Column(String(100), nullable=False)
+    city = Column(String(100), nullable=False)
+    state = Column(String(50), nullable=False)
+    country = Column(String(50), nullable=False, default="Brasil")
+    receiver_name = Column(String(255), nullable=False)
+    full_address = Column(Text, nullable=False)  # Endereço completo formatado
+    is_default = Column(Boolean, default=False)  # Endereço padrão
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="addresses")
 
 # Configuração do banco de dados
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")

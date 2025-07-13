@@ -20,7 +20,7 @@ const MeusPedidos = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/api/my_orders`, {
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -36,9 +36,39 @@ const MeusPedidos = () => {
       console.log("Tipo de data:", typeof data);
       console.log("É array?", Array.isArray(data));
       
+      // Debug das imagens dos produtos
+      if (Array.isArray(data) && data.length > 0) {
+        data.forEach((order, orderIndex) => {
+          console.log(`=== PEDIDO ${order.id} DEBUG ===`);
+          console.log('Order completo:', order);
+          if (order.products && order.products.length > 0) {
+            console.log(`Produtos no pedido ${order.id}:`);
+            order.products.forEach((product, productIndex) => {
+              console.log(`  Produto ${productIndex + 1}:`, {
+                id: product.id,
+                name: product.name,
+                image_path: product.image_path,
+                image_path_type: typeof product.image_path,
+                product_complete: product
+              });
+            });
+          } else {
+            console.log(`Pedido ${order.id} não tem produtos`);
+          }
+        });
+      }
+      
       // Garantir que data é um array
       if (Array.isArray(data)) {
-        setOrders(data);
+        // Ordenar pedidos por data (mais recente primeiro)
+        const sortedOrders = data.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+        debugger
+        setOrders(sortedOrders);
+        
+        // Expandir automaticamente o pedido mais recente se houver pedidos
+        if (sortedOrders.length > 0 && !expandedOrder) {
+          setExpandedOrder(sortedOrders[0].id);
+        }
       } else {
         console.error("Resposta não é um array:", data);
         setOrders([]);
@@ -64,6 +94,52 @@ const MeusPedidos = () => {
     });
   };
 
+  // Função para calcular o total do pedido baseado nos produtos
+  const calculateOrderTotal = (order) => {
+    if (order.total_amount && !isNaN(parseFloat(order.total_amount))) {
+      return parseFloat(order.total_amount);
+    }
+    
+    // Se total_amount não estiver disponível, calcular baseado nos produtos
+    if (order.products && Array.isArray(order.products)) {
+      return order.products.reduce((total, product) => {
+        const valor = parseFloat(product.valor) || 0;
+        const quantity = parseInt(product.quantity) || 0;
+        return total + (valor * quantity);
+      }, 0);
+    }
+    
+    return 0;
+  };
+
+  // Função para construir URL da imagem
+  const getImageUrl = (imagePath) => {
+    console.log('Construindo URL para imagem:', imagePath);
+    
+    if (!imagePath) {
+      console.log('Imagem path vazio, usando placeholder');
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjOEIxNTM4Ii8+Cjx0ZXh0IHg9Ijc1IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxidW08L3RleHQ+Cjwvc3ZnPg==';
+    }
+    
+    // Se já é uma URL completa, usar diretamente
+    if (imagePath.startsWith('http')) {
+      console.log('URL completa detectada:', imagePath);
+      return imagePath;
+    }
+    
+    // Se começa com /, não adicionar outra /
+    if (imagePath.startsWith('/')) {
+      const url = `${apiUrl}${imagePath}`;
+      console.log('URL com barra inicial:', url);
+      return url;
+    }
+    
+    // Caso contrário, adicionar /
+    const url = `${apiUrl}/${imagePath}`;
+    console.log('URL construída:', url);
+    return url;
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -85,13 +161,13 @@ const MeusPedidos = () => {
         <p>Você ainda não fez nenhum pedido.</p>
       ) : (
         <div className="orders-list">
-          {orders.map((order) => (
-            <div key={order.id} className="order-card">
+          {orders.map((order, index) => (
+            <div key={order.id} className={`order-card ${index === 0 ? 'newest-order' : ''}`}>
               <div className="order-header" onClick={() => handleToggleOrder(order.id)}>
                 <div className="order-info">
                   <h3>Pedido #{order.id}</h3>
                   <p>Data: {formatDate(order.order_date)}</p>
-                  <p>Total: R$ {parseFloat(order.total_amount).toFixed(2)}</p>
+                  <p>Total: R$ {calculateOrderTotal(order).toFixed(2)}</p>
                   <p>Status: {order.pending ? 'Pendente' : 'Processado'}</p>
                   <small className="click-hint">Clique para ver detalhes</small>
                   
@@ -121,16 +197,21 @@ const MeusPedidos = () => {
                     {order.products.map((product) => (
                       <div key={product.id} className="product-item">
                         <img 
-                          src={product.image_path?.startsWith('http') ? product.image_path : `${apiUrl}/${product.image_path}`}
+                          src={getImageUrl(product.image_path)}
                           alt={product.name}
                           className="product-image"
+                          onError={(e) => {
+                            console.log('Erro ao carregar imagem:', product.image_path);
+                            console.log('URL tentada:', e.target.src);
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjOEIxNTM4Ii8+Cjx0ZXh0IHg9Ijc1IiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxidW08L3RleHQ+Cjwvc3ZnPg=='; // Fallback para imagem padrão
+                          }}
                         />
                         <div className="product-info">
                           <h5>{product.name}</h5>
                           <p>Artista: {product.artist}</p>
                           <p>Quantidade: {product.quantity}</p>
-                          <p>Preço unitário: R$ {parseFloat(product.valor).toFixed(2)}</p>
-                          <p>Subtotal: R$ {(parseFloat(product.valor) * product.quantity).toFixed(2)}</p>
+                          <p>Preço unitário: R$ {(parseFloat(product.valor) || 0).toFixed(2)}</p>
+                          <p>Subtotal: R$ {((parseFloat(product.valor) || 0) * (parseInt(product.quantity) || 0)).toFixed(2)}</p>
                         </div>
                       </div>
                     ))}

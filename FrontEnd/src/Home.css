@@ -239,7 +239,6 @@
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--bg-secondary);
-  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   font-size: var(--font-size-sm);

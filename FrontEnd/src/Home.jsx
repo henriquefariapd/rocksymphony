@@ -319,7 +319,6 @@ function Home() {
 
   return (
     <div>
-      <h2>Catálogo</h2>
 
       {/* Barra de busca e filtros */}
       <div className="search-filters-container">

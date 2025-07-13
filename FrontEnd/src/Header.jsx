@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom'; // Se estiver usando React Router 
-import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt } from 'react-icons/fa'; // Importando ícones do React Icons
+import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt, FaUserCog } from 'react-icons/fa'; // Importando ícones do React Icons
 import { AiOutlineSchedule } from "react-icons/ai";
 import { GrConfigure } from "react-icons/gr";
 import { GiMusicalScore } from "react-icons/gi";
@@ -23,9 +23,14 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
           </Link>
 
           {!isAdmin && (
-            <Link to="/minhas-reservas" className="space-button">
-              <AiOutlineSchedule /> Meus pedidos {/* Ícone de hotel */}
-            </Link>
+            <>
+              <Link to="/minhas-reservas" className="space-button">
+                <AiOutlineSchedule /> Meus pedidos {/* Ícone de pedidos */}
+              </Link>
+              <Link to="/conta" className="space-button">
+                <FaUserCog /> Conta {/* Ícone de conta/perfil */}
+              </Link>
+            </>
           )}
           
           {/* Mostrar botão de cadastro de espaços somente se for admin */}

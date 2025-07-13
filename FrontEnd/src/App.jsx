@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import toast2, { Toaster } from 'react-hot-toast';
 import Login from './Login';
 import Home from './Home';
 import ResetPassword from './ResetPassword';
@@ -12,17 +13,30 @@ import Pedidos from './Pedidos';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
+import Conta from './Conta';
 import LoginModal from './LoginModal';
 import { CiShoppingCart } from "react-icons/ci";
 import { IoIosCloseCircleOutline } from "react-icons/io";
+import { FaMapMarkerAlt } from "react-icons/fa";
 import './App.css';
 
 function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+function AppContent() {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarAberto, setSidebarAberto] = useState(false);
   const [cartItems, setCartItems] = useState([]); // Estado para armazenar os itens do carrinho
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [userAddresses, setUserAddresses] = useState([]); // Endereços do usuário
+  const [selectedAddressId, setSelectedAddressId] = useState(null); // Endereço selecionado
 
   const toggleSidebar = () => {
     setSidebarAberto(!sidebarAberto);
@@ -88,12 +102,20 @@ function App() {
         return;
       }
 
-      const response = await fetch(`${apiUrl}/api/create_order`, {
+      if (!selectedAddressId) {
+        toast.error("Por favor, selecione um endereço de entrega.");
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/api/handle_checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
+        body: JSON.stringify({
+          address_id: selectedAddressId
+        })
       });
   
       const data = await response.json();
@@ -109,10 +131,39 @@ function App() {
       // Fechar sidebar
       setSidebarAberto(false);
       
-      toast.success(`Pedido criado com sucesso! Total: R$ ${data.total_amount}`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      // Notificação especial de pedido criado com react-hot-toast
+      toast2.success(
+        (t) => (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '20px', marginBottom: '8px' }}>🎉</div>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+              Pedido #{data.order_id} criado!
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>
+              Total: R$ {data.total_amount?.toFixed(2)}
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+              Redirecionando para seus pedidos...
+            </div>
+          </div>
+        ),
+        {
+          duration: 2000,
+          position: 'top-center',
+          style: {
+            background: '#10B981',
+            color: 'white',
+            padding: '16px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(16, 185, 129, 0.3)',
+          },
+        }
+      );
+
+      // Redirecionar para Meus Pedidos após 1.5 segundos
+      setTimeout(() => {
+        navigate('/minhas-reservas');
+      }, 1500);
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
       toast.error("Erro ao criar pedido. Tente novamente.", {
@@ -160,12 +211,42 @@ function App() {
     }
   };
 
+  // Função para buscar os endereços do usuário
+  const fetchUserAddresses = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token || token === 'undefined') return;
+      
+      const response = await axios.get(`${apiUrl}/api/addresses`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUserAddresses(response.data);
+      
+      // Selecionar automaticamente o endereço padrão se existir
+      const defaultAddress = response.data.find(addr => addr.is_default);
+      if (defaultAddress) {
+        setSelectedAddressId(defaultAddress.id);
+      }
+    } catch (err) {
+      console.error("Erro ao recuperar endereços:", err);
+    }
+  };
+
+  // Função para recarregar endereços (para ser chamada após cadastrar novo endereço)
+  const refreshAddresses = () => {
+    fetchUserAddresses();
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token && token !== 'undefined') {
       setIsLoggedIn(true);
       fetchMe();
       fetchCartItems(); // Buscar os produtos do carrinho
+      fetchUserAddresses(); // Buscar endereços do usuário
+      fetchUserAddresses(); // Buscar endereços do usuário
     }
   }, []);
 
@@ -185,11 +266,13 @@ function App() {
       setIsLoggedIn(true);
       fetchMe();
       fetchCartItems();
+      fetchUserAddresses();
     }
   };
 
   return (
-    <Router>
+    <>
+      <Toaster />
       <Header isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={handleLogout} onLogin={handleLogin} />
 
       {/* Modal de Login */}
@@ -226,8 +309,50 @@ function App() {
               <IoIosCloseCircleOutline />
             </button>
             <h2 className="sidebar-title">Seu Carrinho</h2>
+            
             {cartItems.length > 0 ? (
               <>
+                {/* Seletor de Endereço */}
+                <div className="address-selection">
+                  <div className="address-header">
+                    <FaMapMarkerAlt />
+                    <span>Endereço de Entrega</span>
+                  </div>
+                  {userAddresses.length > 0 ? (
+                    <select 
+                      value={selectedAddressId || ''} 
+                      onChange={(e) => setSelectedAddressId(parseInt(e.target.value))}
+                      className="address-selector"
+                    >
+                      <option value="">Selecione um endereço</option>
+                      {userAddresses.map((address) => (
+                        <option key={address.id} value={address.id}>
+                          {address.receiver_name} - {address.street}, {address.number} - {address.neighborhood}, {address.city}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="no-address">
+                      <p>Você não possui endereços cadastrados</p>
+                      <Link to="/conta" className="btn-add-address" onClick={toggleSidebar}>
+                        Cadastrar Endereço
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div className="cart-header-actions">
+                  <button
+                    className={`btn-continuar-pagamento btn-checkout-top ${!selectedAddressId ? 'disabled' : ''}`}
+                    onClick={() => handleCheckout()}
+                    disabled={!selectedAddressId}
+                  >
+                    Efetuar Pedido
+                  </button>
+                  <div className="cart-summary-top">
+                    <strong>Total: R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}</strong>
+                  </div>
+                </div>
                 <ul>
                   {cartItems.map((item) => (
                     <li key={item.id} className="cart-item">
@@ -257,14 +382,6 @@ function App() {
                     <strong>Total:</strong> R$ {cartItems.reduce((total, item) => total + item.valor * item.quantity, 0).toFixed(2)}
                   </p>
                 </div>
-                <div>
-                  <button
-                    className="btn-continuar-pagamento"
-                    onClick={() => handleCheckout()}
-                  >
-                    Efetuar Pedido
-                  </button>
-                </div>
               </>
             ) : (
               <p>Seu carrinho está vazio.</p>
@@ -273,19 +390,19 @@ function App() {
         </>
       )}
 
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/minhas-reservas" element={isLoggedIn ? <MeusPedidos /> : <Navigate to="/login" />} />
+        <Route path="/conta" element={isLoggedIn ? <Conta onAddressUpdate={refreshAddresses} /> : <Navigate to="/login" />} />
         <Route path="/pedidos" element={isLoggedIn ? <Pedidos /> : <Navigate to="/login" />} />
         <Route path="/configuracoes" element={isLoggedIn ? <Configuracoes /> : <Navigate to="/login" />} />
         <Route path="/importar-usuarios" element={isLoggedIn ? <ImportarUsuarios /> : <Navigate to="/login" />} />
         <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 
