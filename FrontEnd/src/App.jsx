@@ -10,6 +10,7 @@ import Header from './Header';
 import Produtos from './Produtos';
 import MeusPedidos from './MeusPedidos';
 import Pedidos from './Pedidos';
+import AdminPedidos from './AdminPedidos';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
 import ListaUsuarios from './Usuarios';
@@ -397,6 +398,7 @@ function AppContent() {
         <Route path="/minhas-reservas" element={isLoggedIn ? <MeusPedidos /> : <Navigate to="/login" />} />
         <Route path="/conta" element={isLoggedIn ? <Conta onAddressUpdate={refreshAddresses} /> : <Navigate to="/login" />} />
         <Route path="/pedidos" element={isLoggedIn ? <Pedidos /> : <Navigate to="/login" />} />
+        <Route path="/admin/pedidos" element={isLoggedIn ? <AdminPedidos /> : <Navigate to="/login" />} />
         <Route path="/configuracoes" element={isLoggedIn ? <Configuracoes /> : <Navigate to="/login" />} />
         <Route path="/importar-usuarios" element={isLoggedIn ? <ImportarUsuarios /> : <Navigate to="/login" />} />
         <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />

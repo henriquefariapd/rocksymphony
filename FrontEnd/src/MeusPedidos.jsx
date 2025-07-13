@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import OrderStepper from "./OrderStepper";
 import "./MeusPedidos.css";
 
 const MeusPedidos = () => {
@@ -191,6 +192,9 @@ const MeusPedidos = () => {
               
               {expandedOrder === order.id && (
                 <div className="order-details">
+                  {/* Stepper de status do pedido */}
+                  <OrderStepper pending={order.pending} sent={order.sent} />
+                  
                   <h4>Produtos do pedido:</h4>
                   <div className="products-list">
                     {order.products.map((product) => (

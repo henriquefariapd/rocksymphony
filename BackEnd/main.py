@@ -1174,6 +1174,7 @@ async def get_user_orders(
                 "id": order["id"],
                 "order_date": order["order_date"],
                 "pending": order["pending"],
+                "sent": order.get("sent", False),  # Adicionar campo sent
                 "active": order["active"],
                 "payment_link": order.get("payment_link"),  # Adicionar payment_link
                 "total_amount": order.get("total_amount", total_value),  # Usar total_amount do banco ou calculado
@@ -1259,45 +1260,53 @@ async def list_users(
 
 @app.get("/api/admin/orders")
 async def get_all_orders(
-    current_user: dict = Depends(get_current_admin_user),
-    db: Session = Depends(get_db_session)
+    current_user: dict = Depends(get_current_admin_user)
 ):
     """Obter todos os pedidos (apenas admin)"""
-    orders = db.query(Order).all()
-    
-    result = []
-    for order in orders:
-        user = db.query(User).filter(User.id == order.user_id).first()
-        order_products = db.query(OrderProduct, Product).join(Product).filter(
-            OrderProduct.order_id == order.id
-        ).all()
+    try:
+        # Buscar todos os pedidos com informações do usuário
+        orders_response = supabase.table("orders").select(
+            "*, users(usuario), order_products(*, products(*))"
+        ).execute()
         
-        products = []
-        total_value = 0
-        for order_product, product in order_products:
-            products.append({
-                "name": product.name,
-                "artist": product.artist,
-                "quantity": order_product.quantity,
-                "valor": product.valor
+        result = []
+        for order in orders_response.data:
+            products = []
+            total_value = 0
+            
+            for order_product in order.get("order_products", []):
+                product = order_product["product"]
+                quantity = order_product["quantity"]
+                price_at_time = float(order_product.get("price_at_time", product["valor"]))
+                
+                products.append({
+                    "id": product["id"],
+                    "name": product["name"],
+                    "artist": product["artist"],
+                    "quantity": quantity,
+                    "valor": price_at_time,
+                    "image_path": product.get("image_path")
+                })
+                total_value += price_at_time * quantity
+            
+            result.append({
+                "id": order["id"],
+                "order_date": order["order_date"],
+                "pending": order["pending"],
+                "sent": order.get("sent", False),
+                "active": order["active"],
+                "user_name": order["users"]["usuario"] if order["users"] else "Usuário sem nome",
+                "total_amount": order.get("total_amount", total_value),
+                "products": products
             })
-            total_value += product.valor * order_product.quantity
         
-        result.append({
-            "id": order.id,
-            "order_date": order.order_date.isoformat(),
-            "pending": order.pending,
-            "active": order.active,
-            "user": {
-                "id": user.id,
-                "usuario": user.usuario,
-                "email": current_user.get("email")  # Email vem do Supabase
-            },
-            "products": products,
-            "total_value": total_value
-        })
-    
-    return result
+        # Ordenar por data mais recente primeiro
+        result.sort(key=lambda x: x["order_date"], reverse=True)
+        return result
+        
+    except Exception as e:
+        print(f"Erro ao buscar todos os pedidos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar pedidos: {str(e)}")
 
 # ===== ENDPOINTS DE USUÁRIO =====
 
@@ -1926,3 +1935,39 @@ async def get_all_orders_admin(
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
+
+@app.put("/api/orders/{order_id}/status")
+async def update_order_status(
+    order_id: int,
+    pending: bool = None,
+    sent: bool = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Atualizar status de um pedido (apenas admin)"""
+    try:
+        print(f"[DEBUG] Atualizando status do pedido {order_id}")
+        print(f"[DEBUG] pending: {pending}, sent: {sent}")
+        
+        # Construir dados para atualização
+        update_data = {}
+        if pending is not None:
+            update_data["pending"] = pending
+        if sent is not None:
+            update_data["sent"] = sent
+            
+        if not update_data:
+            raise HTTPException(status_code=400, detail="Nenhum status fornecido para atualização")
+        
+        # Atualizar o pedido
+        response = supabase.table("orders").update(update_data).eq("id", order_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Pedido não encontrado")
+        
+        return {"message": "Status do pedido atualizado com sucesso", "order": response.data[0]}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Erro ao atualizar status do pedido: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar status do pedido: {str(e)}")

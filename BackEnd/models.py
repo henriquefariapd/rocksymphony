@@ -103,6 +103,7 @@ class Order(Base):
     address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False, index=True)
     payment_link = Column(String(500), nullable=True)
     pending = Column(Boolean, default=True)
+    sent = Column(Boolean, default=False)
     active = Column(Boolean, default=True)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
     
