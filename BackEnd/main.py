@@ -23,18 +23,27 @@ import requests
 import mercadopago
 import yagmail
 import re
+import unicodedata
 
 # Função helper para sanitizar nomes de arquivo
 def sanitize_filename(filename):
     """Remove caracteres especiais e sanitiza o nome do arquivo"""
-    # Remove caracteres especiais, mantém apenas letras, números, espaços, hífens e underscores
-    sanitized = re.sub(r'[^\w\s\-_.]', '', filename)
+    # Remover acentos e normalizar Unicode
+    filename = unicodedata.normalize('NFD', filename)
+    filename = ''.join(char for char in filename if unicodedata.category(char) != 'Mn')
+    
+    # Manter apenas letras ASCII, números, espaços, hífens e underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9\s\-_.]', '', filename)
+    
     # Substitui múltiplos espaços por um único underscore
     sanitized = re.sub(r'\s+', '_', sanitized)
+    
     # Remove underscores duplos
     sanitized = re.sub(r'_{2,}', '_', sanitized)
+    
     # Remove underscores do início e fim
     sanitized = sanitized.strip('_')
+    
     # Limita o tamanho para evitar nomes muito longos
     return sanitized[:100] if len(sanitized) > 100 else sanitized
 
