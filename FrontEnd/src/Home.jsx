@@ -559,10 +559,10 @@ function Home() {
               )}
               
               <div className="modal-actions">
-                <button className="btn-modal-comprar">
+                {/* <button className="btn-modal-comprar">
                   <BiPurchaseTagAlt />
                   Comprar Agora
-                </button>
+                </button> */}
                 <button 
                   className="btn-modal-carrinho" 
                   onClick={() => handleAddtoCart(selectedProduct.id)}
