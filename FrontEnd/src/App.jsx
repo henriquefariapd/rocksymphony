@@ -28,21 +28,6 @@ import './App.css';
 function App() {
   return (
     <>
-      <img
-        src="https://eenxzzvjfwziptlkjejs.supabase.co/storage/v1/object/public/product-images/background-rock.png"
-        alt="Background"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          objectFit: 'cover',
-          zIndex: -1,
-          pointerEvents: 'none',
-          opacity: 1,
-        }}
-      />
       <Router>
         <AppContent />
       </Router>

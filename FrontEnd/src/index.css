@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* === VARIÁVEIS CSS === */
@@ -404,7 +405,7 @@ button:hover, .btn:hover, [class*="btn-"]:hover {
 .main-content {
   flex: 1;
   padding: var(--spacing-lg);
-  max-width: 1200px;
+  max-width: 2000px;
   margin: 0 auto;
   width: 100%;
 }

@@ -1,8 +1,24 @@
-body {
-  background: #57001f url('https://eenxzzvjfwziptlkjejs.supabase.co/storage/v1/object/public/product-images/background-rock.png') repeat;
+/* Fundo parallax fixo para todo o site */
+.parallax-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+body, #root {
+  position: relative;
+  z-index: auto;
+}
+  background-repeat: repeat;
   background-size: auto;
   background-position: 0 0;
-  background-repeat: repeat;
+  pointer-events: none;
+}
+body {
+  background-size: auto !important;
+  background-position: 0 0 !important;
+  background-repeat: repeat !important;
 }
 /* App.css - Estilos para o componente principal e sidebar do carrinho */
 
@@ -13,7 +29,8 @@ body {
   min-height: 100vh; /* Garante altura mínima da viewport */
   /* background removido para não sobrescrever o parallax do Supabase */
   position: relative;
-  overflow-x: hidden; /* Evita scroll horizontal */
+  z-index: 0;
+  /* overflow-x: hidden; Removido para não esconder o scroll */
 }
 
 /* Efeito Parallax para o background */
@@ -28,12 +45,15 @@ body {
   right: 0;
   bottom: 0;
   background: rgba(87, 0, 31, 0.3); /* Overlay semi-transparente da cor vinho */
-  z-index: -1;
   pointer-events: none;
 }
 
 .main-content {
   flex: 1; /* Expande para ocupar espaço disponível */
+  background: #57001f url('https://eenxzzvjfwziptlkjejs.supabase.co/storage/v1/object/public/product-images/background-rock.png') repeat;
+  background-size: auto;
+  background-position: 0 0;
+  background-repeat: repeat;
 }
 
 /* Layout principal */
