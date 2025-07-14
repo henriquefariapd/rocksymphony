@@ -5,7 +5,38 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh; /* Garante altura mínima da viewport */
-  background: #57001f; /* Cor vinho sólida */
+  background: #57001f url('/background-rock.png') repeat; /* Fallback com repetição */
+  position: relative;
+  overflow-x: hidden; /* Evita scroll horizontal */
+}
+
+/* Efeito Parallax para o background */
+.app-container::before {
+  content: '';
+  position: fixed;
+  top: -50px; /* Margem para movimento */
+  left: 0;
+  right: 0;
+  height: calc(100vh + 100px); /* Altura extra para permitir movimento */
+  background-image: url('/background-rock.png');
+  background-size: auto; /* Tamanho original da imagem */
+  background-position: 0 0;
+  background-repeat: repeat; /* Repetir a imagem como padrão */
+  z-index: -2;
+  will-change: transform;
+}
+
+/* Overlay para melhorar legibilidade */
+.app-container::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(87, 0, 31, 0.3); /* Overlay semi-transparente da cor vinho */
+  z-index: -1;
+  pointer-events: none;
 }
 
 .main-content {

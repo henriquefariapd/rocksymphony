@@ -46,6 +46,53 @@ function AppContent() {
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false); // Loading do cálculo de frete
   const [shippingDeliveryDays, setShippingDeliveryDays] = useState(0); // Dias de entrega
 
+  // Hook para efeito parallax
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.pageYOffset;
+      const rate = scrolled * 0.3; // Velocidade do parallax
+      
+      // Aplica o parallax criando um novo estilo CSS
+      let style = document.getElementById('dynamic-parallax');
+      if (!style) {
+        style = document.createElement('style');
+        style.id = 'dynamic-parallax';
+        document.head.appendChild(style);
+      }
+      
+      style.textContent = `
+        .app-container::before {
+          transform: translateY(${rate}px) !important;
+        }
+      `;
+      
+      console.log('Parallax aplicado - Scroll:', scrolled, 'Transform:', rate);
+    };
+
+    // Throttle simples
+    let ticking = false;
+    const requestTick = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', requestTick, { passive: true });
+    handleScroll(); // Executa uma vez
+
+    return () => {
+      window.removeEventListener('scroll', requestTick);
+      const style = document.getElementById('dynamic-parallax');
+      if (style) {
+        style.remove();
+      }
+    };
+  }, []);
+
   const toggleSidebar = () => {
     const wasOpen = sidebarAberto;
     setSidebarAberto(!sidebarAberto);

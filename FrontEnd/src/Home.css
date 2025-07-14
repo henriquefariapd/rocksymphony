@@ -3,7 +3,7 @@
 /* Container principal */
 .home-container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 60px auto;
   padding: var(--spacing-lg);
   background-color: var(--bg-primary);
   min-height: 100vh;
