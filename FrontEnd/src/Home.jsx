@@ -518,7 +518,7 @@ function Home() {
               <div className="produto-info">
                 <h3>{produto.name}</h3>
                 <p className="produto-artist">{produto.artist_name || produto.artist || 'Artista não informado'}</p>
-                <p className="produto-value">R$ {parseFloat(produto.valor).toFixed(2)}</p>
+                <p className="produto-value">{parseFloat(produto.valor).toFixed(2)}</p>
                 
                 <button 
                   className="btn-comprar"
