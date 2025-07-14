@@ -415,7 +415,7 @@ function Home() {
     <>
       <div
         className="parallax-bg"
-        style={{ backgroundImage: `url('${supabaseBgUrl}')` }}
+        style={{ backgroundImage: `url('https://eenxzzvjfwziptlkjejs.supabase.co/storage/v1/object/public/product-images/background-rock.png')` }}
       />
       <div className="home-container">
 

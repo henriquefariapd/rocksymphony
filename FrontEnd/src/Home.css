@@ -1,3 +1,16 @@
+.parallax-bg {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 0 !important;
+  opacity: 1 !important;
+  background-size: cover !important;
+  background-position: center 0 !important;
+  background-repeat: no-repeat !important;
+  pointer-events: none;
+}
 /* Home.css - Estilos para a página inicial do marketplace */
 
 /* Container principal */
@@ -5,9 +18,11 @@
   max-width: 1200px;
   margin: 60px auto;
   padding: var(--spacing-lg);
-  background-color: var(--bg-primary);
+  background: #fff !important;
   min-height: 100vh;
   border-radius: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Header da página */

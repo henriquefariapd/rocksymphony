@@ -398,7 +398,6 @@ button:hover, .btn:hover, [class*="btn-"]:hover {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, #f1f3f4 100%);
 }
 
 /* Conteúdo principal */
