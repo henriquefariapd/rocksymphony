@@ -1,18 +1,16 @@
 /* Header.css */
 
 .header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: #8b2c3f; /* Cor vinho sólida */
   color: var(--text-light);
-  padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-sm);
-  box-shadow: var(--box-shadow);
+  align-items: stretch; /* Para que os filhos ocupem toda altura */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(10px);
+  height: 70px; /* Altura fixa para o header */
 }
 
 .header h2 {
@@ -27,6 +25,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  height: 100%;
+  padding: 0 var(--spacing-lg);
 }
 
 .d-flex svg {
@@ -40,32 +40,30 @@
 
 .header-buttons {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  align-items: stretch; /* Para que ocupem toda altura */
+  height: 100%;
 }
 
 .space-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
   color: var(--text-light);
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: #8b2c3f; /* Mesma cor do header */
+  padding: 0 var(--spacing-md);
   text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius);
+  border: none;
   font-size: var(--font-size-sm);
   font-weight: 500;
   transition: all var(--transition-normal);
   white-space: nowrap;
-  backdrop-filter: blur(5px);
+  height: 100%; /* Ocupa toda altura do header */
 }
 
 .space-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: #5a1c28; /* Vinho mais escuro no hover */
+  transform: none;
 }
 
 .space-button svg {
@@ -75,25 +73,24 @@
 .logout-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
   color: var(--text-light);
-  background-color: var(--danger-color);
-  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: #8b2c3f; /* Mesma cor do header */
+  padding: 0 var(--spacing-md);
   text-decoration: none;
-  border: 1px solid var(--danger-color);
-  border-radius: var(--border-radius);
+  border: none;
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
   white-space: nowrap;
+  height: 100%; /* Ocupa toda altura do header */
 }
 
 .logout-button:hover {
-  background-color: #c82333;
-  border-color: #c82333;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: #5a1c28; /* Vinho mais escuro no hover */
+  transform: none;
 }
 
 .logout-button svg {
@@ -103,25 +100,25 @@
 .login-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
   color: var(--text-light);
-  background-color: var(--success-color);
-  padding: var(--spacing-sm) var(--spacing-md);
+  background: #8b2c3f; /* Mesma cor do header */
+  padding: 0 var(--spacing-md);
   text-decoration: none;
-  border: 1px solid var(--success-color);
-  border-radius: var(--border-radius);
+  border: none;
   font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
   white-space: nowrap;
+  height: 100%; /* Ocupa toda altura do header */
 }
 
 .login-button:hover {
-  background-color: #218838;
-  border-color: #218838;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: #5a1c28; /* Vinho mais escuro no hover */
+  transform: none;
+  border-radius: 0px;
 }
 
 .login-button svg {

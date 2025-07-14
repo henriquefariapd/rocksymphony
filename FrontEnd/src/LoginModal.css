@@ -6,23 +6,27 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1100;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(8px);
 }
 
 .modal-content {
-  background: var(--bg-primary);
+  background: linear-gradient(135deg, 
+    rgba(15, 15, 35, 0.95) 0%, 
+    rgba(26, 26, 46, 0.95) 50%, 
+    rgba(22, 33, 62, 0.95) 100%);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--box-shadow-xl);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   max-width: 400px;
   width: 90%;
   position: relative;
   animation: modalSlideIn 0.3s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
 }
 
 @keyframes modalSlideIn {
@@ -40,8 +44,8 @@
   position: absolute;
   top: var(--spacing-md);
   right: var(--spacing-md);
-  background: var(--primary-color);
-  border: 1px solid var(--primary-color);
+  background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(138, 43, 226, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   font-size: var(--font-size-lg);
   cursor: pointer;
@@ -56,9 +60,9 @@
 }
 
 .modal-close:hover {
-  background: var(--primary-light);
-  border-color: var(--primary-light);
+  background: linear-gradient(135deg, rgba(220, 20, 60, 1) 0%, rgba(138, 43, 226, 1) 100%);
   transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(220, 20, 60, 0.4);
 }
 
 .modal-header {
@@ -77,10 +81,12 @@
 .modal-body {
   padding: var(--spacing-xl);
   text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 
 .modal-body p {
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.9);
   font-size: var(--font-size-md);
   margin-bottom: var(--spacing-xl);
   line-height: 1.5;
@@ -98,21 +104,22 @@
   justify-content: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(138, 43, 226, 0.9) 100%);
   color: white;
   text-decoration: none;
   border-radius: var(--border-radius-sm);
   font-weight: 600;
   font-size: var(--font-size-md);
   transition: all 0.3s ease;
-  border: 2px solid var(--primary-color);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .btn-login-modal:hover {
-  background: var(--primary-light);
-  border-color: var(--primary-light);
+  background: linear-gradient(135deg, rgba(220, 20, 60, 1) 0%, rgba(138, 43, 226, 1) 100%);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
-  box-shadow: var(--box-shadow-md);
+  box-shadow: 0 8px 16px rgba(220, 20, 60, 0.4);
 }
 
 .btn-cancel-modal {
@@ -145,7 +152,7 @@
 .form-group label {
   display: block;
   margin-bottom: var(--spacing-xs);
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
   font-size: var(--font-size-sm);
 }
@@ -153,10 +160,10 @@
 .form-group input {
   width: 100%;
   padding: var(--spacing-sm);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--border-radius-md);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
   font-size: var(--font-size-base);
   transition: all 0.3s ease;
   box-sizing: border-box;
@@ -164,13 +171,13 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: rgba(220, 20, 60, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.2);
 }
 
 .form-group input::placeholder {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .password-input-container {
@@ -194,7 +201,7 @@
 }
 
 .password-toggle:hover {
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .btn-register-modal {
@@ -203,8 +210,8 @@
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--border-radius-md);
   text-decoration: none;
   font-size: var(--font-size-sm);
@@ -214,9 +221,9 @@
 }
 
 .btn-register-modal:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--text-secondary);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
 }
 

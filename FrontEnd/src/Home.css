@@ -7,6 +7,7 @@
   padding: var(--spacing-lg);
   background-color: var(--bg-primary);
   min-height: 100vh;
+  border-radius: 20px;
 }
 
 /* Header da página */
@@ -58,12 +59,12 @@
 
 /* Card do produto - Design moderno para CDs */
 .produto-card {
-  background: #ffffff;
+  background: #f4e5e7; /* Rosa claro pastel */
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e8b4cb;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -73,7 +74,7 @@
 .produto-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  border-color: #881337;
+  border-color: #d8a7ca;
 }
 
 /* Container da imagem quadrada para CDs */
@@ -82,7 +83,7 @@
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #f0e6f7; /* Lilás claro pastel */
 }
 
 /* Imagem do produto - Quadrada para CDs */
