@@ -519,15 +519,14 @@ function Home() {
                 <h3>{produto.name}</h3>
                 <p className="produto-artist">{produto.artist_name || produto.artist || 'Artista não informado'}</p>
                 <p className="produto-value">{parseFloat(produto.valor).toFixed(2)}</p>
-                
+              </div>
+              <div className="produto-acoes">
                 <button 
                   className="btn-comprar"
                   onClick={() => handleOpenProductModal(produto)}
                 >
                   Ver Detalhes
                 </button>
-              </div>
-              <div className="produto-acoes">
                 <button className="btn-comprar" onClick={() => handleAddtoCart(produto.id)}>
                   <FaCartPlus />
                   +Carrinho

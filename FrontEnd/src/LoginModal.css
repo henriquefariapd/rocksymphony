@@ -44,7 +44,7 @@
   position: absolute;
   top: var(--spacing-md);
   right: var(--spacing-md);
-  background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(138, 43, 226, 0.9) 100%);
+  background: #8b2c3f; /* Vinho padrão */
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   font-size: var(--font-size-lg);
@@ -60,9 +60,9 @@
 }
 
 .modal-close:hover {
-  background: linear-gradient(135deg, rgba(220, 20, 60, 1) 0%, rgba(138, 43, 226, 1) 100%);
+  background: #5a1c28; /* Vinho mais escuro no hover */
   transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(220, 20, 60, 0.4);
+  box-shadow: 0 4px 8px rgba(139, 44, 63, 0.4);
 }
 
 .modal-header {
@@ -104,7 +104,7 @@
   justify-content: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, rgba(138, 43, 226, 0.9) 100%);
+  background: #8b2c3f; /* Vinho padrão */
   color: white;
   text-decoration: none;
   border-radius: var(--border-radius-sm);
@@ -116,10 +116,10 @@
 }
 
 .btn-login-modal:hover {
-  background: linear-gradient(135deg, rgba(220, 20, 60, 1) 0%, rgba(138, 43, 226, 1) 100%);
+  background: #5a1c28; /* Vinho mais escuro no hover */
   border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(220, 20, 60, 0.4);
+  box-shadow: 0 8px 16px rgba(139, 44, 63, 0.4);
 }
 
 .btn-cancel-modal {
@@ -171,9 +171,9 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: rgba(220, 20, 60, 0.8);
+  border-color: #8b2c3f; /* Vinho padrão no focus */
   background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.2);
+  box-shadow: 0 0 0 3px rgba(139, 44, 63, 0.2);
 }
 
 .form-group input::placeholder {
@@ -210,7 +210,7 @@
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  color: #333; /* Cor escura para o texto */
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--border-radius-md);
   text-decoration: none;
@@ -223,7 +223,7 @@
 .btn-register-modal:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.5);
-  color: rgba(255, 255, 255, 0.95);
+  color: #333; /* Manter a cor escura no hover */
   text-decoration: none;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .btn-login-modal:disabled:hover {
-  background: var(--primary-color);
+  background: #8b2c3f; /* Manter cor vinho quando desabilitado */
   transform: none;
 }
 
