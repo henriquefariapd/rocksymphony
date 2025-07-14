@@ -1,5 +1,16 @@
 /* App.css - Estilos para o componente principal e sidebar do carrinho */
 
+/* Layout principal - footer não fixo mas sempre embaixo */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Garante altura mínima da viewport */
+}
+
+.main-content {
+  flex: 1; /* Expande para ocupar espaço disponível */
+}
+
 /* Layout principal */
 .app-layout {
   display: flex;

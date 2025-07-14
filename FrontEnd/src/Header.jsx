@@ -71,9 +71,9 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
           <Link to="/" className="space-button">
             <FaHome /> Home {/* Ícone de home */}
           </Link>
-          <Link to="/login" className="login-button">
+          <button onClick={onLogin} className="login-button">
             <FaSignInAlt /> Login {/* Ícone de login */}
-          </Link>
+          </button>
         </div>
       )}
     </header>

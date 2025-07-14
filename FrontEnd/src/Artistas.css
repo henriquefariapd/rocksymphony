@@ -2,6 +2,7 @@
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: 60vh; /* Altura mínima para empurrar footer para baixo durante carregamento */
 }
 
 .artistas-header {

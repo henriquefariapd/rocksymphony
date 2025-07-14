@@ -298,7 +298,7 @@ function Produtos() {
       ) : produtos.length === 0 ? (
         <p>Não há produtos cadastrados no momento.</p>
       ) : (
-        <table className="reserv-table m-bottom-20">
+        <table className="produtos-table m-bottom-20">
         <thead>
           <tr>
             <th>Artista</th>

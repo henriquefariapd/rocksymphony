@@ -346,7 +346,7 @@ function AppContent() {
   };
 
   return (
-    <>
+    <div className="app-container">
       <Toaster />
       <ToastContainer 
         position="top-right"
@@ -368,6 +368,8 @@ function AppContent() {
         onClose={() => setShowLoginModal(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      <main className="main-content">
 
       {isLoggedIn && (
         <>
@@ -522,9 +524,10 @@ function AppContent() {
         <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
+      </main>
       
       <Footer />
-    </>
+    </div>
   );
 }
 

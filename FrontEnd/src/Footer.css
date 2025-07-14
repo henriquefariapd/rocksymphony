@@ -2,7 +2,7 @@
   background: linear-gradient(135deg, #8B1538 0%, #6B1028 100%);
   color: white;
   padding: 40px 20px 20px;
-  margin-top: 60px;
+  margin-top: auto; /* Empurra o footer para baixo no flexbox */
   border-top: 3px solid #A01B3B;
 }
 

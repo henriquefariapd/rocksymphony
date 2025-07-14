@@ -18,6 +18,9 @@ function Home() {
   const [editingEspaco, setEditingEspaco] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null); // Produto selecionado para modal
+  const [showProductModal, setShowProductModal] = useState(false); // Estado do modal do produto
+  const [productIdToAddAfterLogin, setProductIdToAddAfterLogin] = useState(null); // Para adicionar ao carrinho após login
   
   // Estados para busca e filtros
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +45,18 @@ function Home() {
 
   const handleToggleDescription = (productId) => {
     setExpandedProduct(expandedProduct === productId ? null : productId);
+  };
+
+  const handleOpenProductModal = (produto) => {
+    setSelectedProduct(produto);
+    setShowProductModal(true);
+    document.body.style.overflow = 'hidden'; // Prevenir scroll do body
+  };
+
+  const handleCloseProductModal = () => {
+    setSelectedProduct(null);
+    setShowProductModal(false);
+    document.body.style.overflow = 'unset'; // Restaurar scroll do body
   };
 
   const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -198,6 +213,11 @@ function Home() {
     fetchProdutos();
     fetchFilters();
     fetchCountries();
+    
+    // Cleanup: restaurar scroll quando componente for desmontado
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, []);
 
   // UseEffect para aplicar filtros quando mudarem
@@ -310,10 +330,30 @@ function Home() {
     }
   }; 
 
+  // Função para lidar com sucesso do login
+  const handleLoginSuccess = async () => {
+    setShowLoginModal(false);
+    
+    // Se havia um produto para adicionar ao carrinho após login
+    if (productIdToAddAfterLogin) {
+      // Aguardar um pouco para garantir que o token foi salvo
+      setTimeout(async () => {
+        await handleAddtoCart(productIdToAddAfterLogin);
+        setProductIdToAddAfterLogin(null);
+      }, 500);
+    }
+  };
+
   const handleAddtoCart = async (productId) => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token || token == 'undefined') {
+        // Salvar o ID do produto para adicionar após login
+        setProductIdToAddAfterLogin(productId);
+        // Fechar modal de produto se estiver aberto
+        if (showProductModal) {
+          handleCloseProductModal();
+        }
         // Mostrar modal de login ao invés de toast
         setShowLoginModal(true);
         return;
@@ -370,7 +410,7 @@ function Home() {
   };
 
   return (
-    <div>
+    <div className="home-container">
 
       {/* Barra de busca e filtros */}
       <div className="search-filters-container">
@@ -427,7 +467,11 @@ function Home() {
       {/* Modal de Login */}
       <LoginModal 
         isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
+        onClose={() => {
+          setShowLoginModal(false);
+          setProductIdToAddAfterLogin(null); // Limpar produto pendente se modal for fechado
+        }}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       {loading ? (
@@ -474,51 +518,16 @@ function Home() {
               <div className="produto-info">
                 <h3>{produto.name}</h3>
                 <p className="produto-artist">{produto.artist_name || produto.artist || 'Artista não informado'}</p>
+                <p className="produto-value">R$ {parseFloat(produto.valor).toFixed(2)}</p>
                 
-                {/* Detalhes do produto */}
-                {(produto.reference_code || produto.stamp || produto.release_year) && (
-                  <div className="produto-details">
-                    {produto.reference_code && (
-                      <p className="produto-reference">📀 Ref: {produto.reference_code}</p>
-                    )}
-                    {produto.stamp && (
-                      <p className="produto-stamp">🏷️ Selo: {produto.stamp}</p>
-                    )}
-                    {produto.release_year && (
-                      <p className="produto-year">📅 Ano: {produto.release_year}</p>
-                    )}
-                  </div>
-                )}
-                
-                {/* Preço e descrição */}
-                <div className="accordion-container">
-                  <p className="produto-value">{parseFloat(produto.valor).toFixed(2)}</p>
-                  <button 
-                    className="accordion-toggle"
-                    onClick={() => handleToggleDescription(produto.id)}
-                  >
-                    {expandedProduct === produto.id ? (
-                      <>
-                        <FaAngleUp />
-                        Fechar descrição
-                      </>
-                    ) : (
-                      <>
-                        <FaAngleDown />
-                        Ver descrição
-                      </>
-                    )}
-                  </button>
-                  {expandedProduct === produto.id && (
-                    <p className="produto-description">{produto.description || 'Descrição não disponível.'}</p>
-                  )}
-                </div>
+                <button 
+                  className="btn-comprar"
+                  onClick={() => handleOpenProductModal(produto)}
+                >
+                  Ver Detalhes
+                </button>
               </div>
               <div className="produto-acoes">
-                <button className="btn-comprar">
-                  <BiPurchaseTagAlt />
-                  Comprar
-                </button>
                 <button className="btn-comprar" onClick={() => handleAddtoCart(produto.id)}>
                   <FaCartPlus />
                   +Carrinho
@@ -526,6 +535,85 @@ function Home() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Produto */}
+      {showProductModal && selectedProduct && (
+        <div className="product-modal-overlay" onClick={handleCloseProductModal}>
+          <div className="product-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={handleCloseProductModal}>
+              ×
+            </button>
+            
+            <div className="modal-image-section">
+              <img
+                src={getImageUrl(selectedProduct.image_path)}
+                alt={selectedProduct.name}
+                className="modal-product-image"
+                onError={(e) => {
+                  e.target.src = getImageUrl(null);
+                }}
+              />
+              {selectedProduct.remaining && selectedProduct.remaining < 5 && (
+                <div className="modal-product-badge">Últimas unidades</div>
+              )}
+              
+              <div className="modal-actions">
+                <button className="btn-modal-comprar">
+                  <BiPurchaseTagAlt />
+                  Comprar Agora
+                </button>
+                <button 
+                  className="btn-modal-carrinho" 
+                  onClick={() => handleAddtoCart(selectedProduct.id)}
+                >
+                  <FaCartPlus />
+                  Adicionar ao Carrinho
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-info-section">
+              <h2 className="modal-product-title">{selectedProduct.name}</h2>
+              <p className="modal-product-artist">{selectedProduct.artist_name || selectedProduct.artist || 'Artista não informado'}</p>
+              <p className="modal-product-price">R$ {parseFloat(selectedProduct.valor).toFixed(2)}</p>
+              
+              <div className="modal-details-accordion">
+                <div className="detail-item">
+                  <strong>📀 Código de Referência:</strong>
+                  <span>{selectedProduct.reference_code || 'Não informado'}</span>
+                </div>
+                
+                <div className="detail-item">
+                  <strong>🏷️ Selo:</strong>
+                  <span>{selectedProduct.stamp || 'Não informado'}</span>
+                </div>
+                
+                <div className="detail-item">
+                  <strong>📅 Ano de Lançamento:</strong>
+                  <span>{selectedProduct.release_year || 'Não informado'}</span>
+                </div>
+                
+                <div className="detail-item">
+                  <strong>🌍 País:</strong>
+                  <span>{selectedProduct.country || 'Não informado'}</span>
+                </div>
+                
+                <div className="detail-item">
+                  <strong>📦 Estoque:</strong>
+                  <span>{selectedProduct.remaining || 'Não informado'} unidades</span>
+                </div>
+                
+                {selectedProduct.description && (
+                  <div className="detail-item description-item">
+                    <strong>📝 Descrição:</strong>
+                    <p>{selectedProduct.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

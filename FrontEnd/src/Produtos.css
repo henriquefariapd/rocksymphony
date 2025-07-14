@@ -6,7 +6,7 @@
   margin: 0 auto;
   padding: var(--spacing-lg);
   background-color: var(--bg-primary);
-  min-height: 100vh;
+  min-height: 60vh; /* Altura mínima para empurrar footer para baixo durante carregamento */
 }
 
 /* Título da página */
