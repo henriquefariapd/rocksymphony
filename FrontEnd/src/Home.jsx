@@ -7,6 +7,8 @@ import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 import LoginModal from './LoginModal';
 import './Home.css';
 
+const supabaseBgUrl =
+  'https://eenxzzvjfwziptlkjejs.supabase.co/storage/v1/object/public/uploads/background-rock.png';
 
 function Home() {
   const [produtos, setProdutos] = useState([]);
@@ -410,7 +412,12 @@ function Home() {
   };
 
   return (
-    <div className="home-container">
+    <>
+      <div
+        className="parallax-bg"
+        style={{ backgroundImage: `url('${supabaseBgUrl}')` }}
+      />
+      <div className="home-container">
 
       {/* Barra de busca e filtros */}
       <div className="search-filters-container">
@@ -616,8 +623,8 @@ function Home() {
         </div>
       )}
     </div>
+    </>
   );
-  
 }
 
 export default Home;
