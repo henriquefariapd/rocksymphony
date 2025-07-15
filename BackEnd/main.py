@@ -25,7 +25,10 @@ import yagmail
 import re
 import unicodedata
 
-from whatsapp_utils import send_whatsapp_message
+try:
+    from .whatsapp_utils import send_whatsapp_message  # Para execução como módulo (Heroku)
+except ImportError:
+    from whatsapp_utils import send_whatsapp_message  # Para execução direta/local
 def sanitize_filename(filename):
     """Remove caracteres especiais e sanitiza o nome do arquivo"""
     # Remover acentos e normalizar Unicode
