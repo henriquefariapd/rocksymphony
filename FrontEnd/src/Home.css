@@ -61,7 +61,7 @@
 
 /* Card do produto - Design moderno para CDs */
 .produto-card {
-  background: #f4e5e7; /* Rosa claro pastel */
+  background: #fafafa; /* Rosa claro pastel */
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -85,7 +85,6 @@
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  background: #f0e6f7; /* Lilás claro pastel */
 }
 
 /* Imagem do produto - Quadrada para CDs */

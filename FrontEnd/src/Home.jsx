@@ -598,7 +598,7 @@ function Home() {
                 
                 <div className="detail-item">
                   <strong>🌍 País:</strong>
-                  <span>{selectedProduct.country || 'Não informado'}</span>
+                  <span>{selectedProduct.artist_country || selectedProduct.country || 'Não informado'}</span>
                 </div>
                 
                 <div className="detail-item">

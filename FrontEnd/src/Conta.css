@@ -2,7 +2,7 @@
 
 .conta-container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 60px auto;
   padding: var(--spacing-xl);
   background: var(--bg-secondary);
   min-height: calc(100vh - 80px);

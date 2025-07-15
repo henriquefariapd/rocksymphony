@@ -37,16 +37,7 @@ body {
 /* .app-container::before removido para não sobrescrever o parallax do Supabase */
 
 /* Overlay para melhorar legibilidade */
-.app-container::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(87, 0, 31, 0.3); /* Overlay semi-transparente da cor vinho */
-  pointer-events: none;
-}
+
 
 .main-content {
   flex: 1; /* Expande para ocupar espaço disponível */
@@ -61,7 +52,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--bg-secondary);
+  background: #fff;
 }
 
 /* Sidebar do carrinho */

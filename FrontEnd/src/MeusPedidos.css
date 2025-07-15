@@ -40,11 +40,12 @@
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: box-shadow 0.3s ease;
+  background: #fff;
 }
 
 .order-card.newest-order {
   border: 2px solid #8B1538;
-  background: linear-gradient(135deg, #fef5f7 0%, #ffffff 100%);
+  background: #fff;
   box-shadow: 0 4px 12px rgba(139, 21, 56, 0.15);
   position: relative;
 }
