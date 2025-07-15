@@ -25,7 +25,7 @@ import yagmail
 import re
 import unicodedata
 
-# Função helper para sanitizar nomes de arquivo
+from whatsapp_utils import send_whatsapp_message
 def sanitize_filename(filename):
     """Remove caracteres especiais e sanitiza o nome do arquivo"""
     # Remover acentos e normalizar Unicode
@@ -1552,14 +1552,22 @@ def create_order(
             "pending": True,
             "active": True
         }
-        
         order_response = supabase.table("orders").insert(order_data_db).execute()
-        
         if not order_response.data:
             raise HTTPException(status_code=500, detail="Erro ao criar pedido")
-        
         new_order_id = order_response.data[0]["id"]
         print(f"Pedido criado: {new_order_id}")
+
+        # Enviar mensagem WhatsApp para o admin
+        try:
+            # Configuração do WhatsApp Business API (Meta/Facebook)
+            admin_phone = "5521976432296"  # Número de teste cadastrado no painel, formato E.164 (sem espaços, só números)
+            phone_number_id = "733815513144780"  # ID do número de telefone do painel
+            access_token = "EAARrlZAiZB0h4BPFOZA30m0qpeXl6QYL696O9dqCr5cUkd6Hav9zvBYnZBpTn7wQyzpvdtc4yghl3GBeK4UuzwcCn7qaZCmkYky7idPLdiDEkjZAdoybXQEBnYHvrMthmR4ZALZCtgEs10NVGtZB0K2uZBYTHSDkB7VzKpd0MwZABicb0s9IyhfjT0ouOaQQzmScGzj0YTpZCoW2a7HrpmxpgyJWuRi3cStpIyhH9jO6Ec0ft62ln9je"
+            # Para números de teste, só é permitido enviar template aprovado (ex: hello_world)
+            send_whatsapp_message(admin_phone, "", phone_number_id, access_token, use_template=True, template_name="hello_world", template_lang="en_US")
+        except Exception as e:
+            print(f"[WHATSAPP] Falha ao notificar admin: {e}")
 
         # Adicionar produtos ao pedido
         print("Adicionando produtos ao pedido...")
@@ -2035,6 +2043,16 @@ async def mercadopago_webhook(request: Request):
                         }).eq("id", external_reference).execute()
                         
                         print(f"[DEBUG] Pedido {external_reference} marcado como pago")
+                        # Enviar mensagem WhatsApp ao admin sobre pagamento aprovado
+                        try:
+                            from whatsapp_utils import send_whatsapp_message
+                            admin_phone = "SEU_NUMERO_AQUI"  # Ex: "5511999999999"
+                            api_url = "SUA_API_URL_AQUI"     # Ex: "https://api.ultramsg.com/instanceXXXX/messages/chat"
+                            api_token = "SEU_TOKEN_AQUI"
+                            msg = f"Pagamento aprovado do pedido #{external_reference}!"
+                            send_whatsapp_message(admin_phone, msg, api_url, api_token)
+                        except Exception as e:
+                            print(f"[WHATSAPP] Falha ao notificar admin (pagamento): {e}")
         
         return {"status": "ok"}
         
