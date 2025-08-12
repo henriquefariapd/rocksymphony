@@ -163,7 +163,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         "https://rocksymphony-3f7b8e8b3afd.herokuapp.com",
-        "http://rocksymphony-3f7b8e8b3afd.herokuapp.com"
+        "http://rocksymphony-3f7b8e8b3afd.herokuapp.com",
+        "http://www.rocksymphony.com.br"
     ],  # URLs do frontend (local e produção)
     allow_credentials=True,
     allow_methods=["*"],
