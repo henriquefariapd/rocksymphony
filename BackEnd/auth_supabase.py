@@ -48,6 +48,7 @@ class AuthService:
                 "email": email,
                 "password": password,
                 "options": {
+                    "emailRedirectTo": "https://www.rocksymphony.com.br",
                     "data": {
                         "usuario": usuario,
                         "is_admin": is_admin
