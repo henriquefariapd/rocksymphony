@@ -36,7 +36,6 @@ class AuthService:
         """Registra um novo usuário"""
         try:
             # Verificar se o usuario já existe
-            import pdb; pdb.set_trace()
             if usuario:
                 existing_user = self.supabase.table("users").select("*").eq("usuario", usuario).execute()
                 if existing_user.data:
