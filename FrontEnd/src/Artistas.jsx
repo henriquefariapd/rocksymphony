@@ -21,12 +21,22 @@ function Artistas() {
   });
 
   // Lista de países para seleção
-  const countries = [
-    'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Canada', 
-    'Denmark', 'Finland', 'France', 'Germany', 'Iceland', 'Italy', 
-    'Japan', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Spain', 
-    'Sweden', 'Switzerland', 'United Kingdom', 'United States'
-  ];
+const countries = [
+  'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Canada', 
+  'Denmark', 'Finland', 'France', 'Germany', 'Iceland', 'Italy', 
+  'Japan', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Spain', 
+  'Sweden', 'Switzerland', 'United Kingdom', 'United States', 
+  'Chile', 'Peru', 'Uruguai', 'Hungria', 'México', 'Cuba', 'Colômbia', 'Venezuela',
+  'China', 'Coreia do Sul', 'Índia', 'Indonésia', 'Filipinas', 'Tailândia',
+  'Malásia', 'Singapura', 'Turquia', 'Grécia', 'Egito', 'Marrocos',
+  'África do Sul', 'Nova Zelândia', 'Irlanda', 'Escócia', 'Croácia',
+  'República Tcheca', 'Eslováquia', 'Eslovênia', 'Romênia', 'Bulgária',
+  'Israel', 'Arábia Saudita', 'Emirados Árabes Unidos', 'Rússia', 
+  'Ucrânia', 'Bielorrússia', 'Lituânia', 'Letônia', 'Estônia',
+  'Costa Rica', 'Panamá', 'Guatemala', 'Paraguai', 'Bolívia', 'Equador',
+  'Nigéria', 'Quênia', 'Gana', 'Etiópia', 'Paquistão', 'Bangladesh',
+  'Vietnã', 'Nepal', 'Sri Lanka'
+];
 
   useEffect(() => {
     fetchArtistas();
