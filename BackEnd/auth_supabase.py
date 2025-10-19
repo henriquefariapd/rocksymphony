@@ -10,6 +10,7 @@ load_dotenv()
 # Configuração do Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+#SUPABASE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("SUPABASE_URL e SUPABASE_KEY devem estar definidos no .env")
@@ -47,12 +48,9 @@ class AuthService:
             auth_response = self.supabase.auth.sign_up({
                 "email": email,
                 "password": password,
-                "options": {
-                    "emailRedirectTo": "https://www.rocksymphony.com.br",
-                    "data": {
-                        "usuario": usuario,
-                        "is_admin": is_admin
-                    }
+                "data": {
+                    "usuario": usuario,
+                    "is_admin": is_admin
                 }
             })
             

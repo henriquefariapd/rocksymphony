@@ -177,6 +177,8 @@ app.add_middleware(
 # Incluir rotas de autenticação
 app.include_router(auth_router)
 
+yag = yagmail.SMTP("henriquebarreira88@gmail.com", "keij stab puyx mocw")
+
 # Função para obter a sessão do banco de dados
 def get_db_session():
     db = SessionLocal()
@@ -1657,6 +1659,11 @@ def create_order(
         supabase.table("shoppingcart_products").delete().eq("shoppingcart_id", cart_id).execute()
         
         print("Pedido criado com sucesso!")
+        yag.send(
+            to="leonahoum@gmail.com",
+            subject="Pedido Feito!",
+            contents="Foi registrado um novo pedido!"
+        )
         return {
             "message": "Pedido criado com sucesso",
             "order_id": new_order_id,
@@ -2060,7 +2067,11 @@ async def mercadopago_webhook(request: Request):
                             send_whatsapp_message(admin_phone, msg, api_url, api_token)
                         except Exception as e:
                             print(f"[WHATSAPP] Falha ao notificar admin (pagamento): {e}")
-        
+        yag.send(
+            to="leonahoum@gmail.com",
+            subject="Pedido Pago!",
+            contents="Foi registrado um pagamento de pedido!"
+        )
         return {"status": "ok"}
         
     except Exception as e:
