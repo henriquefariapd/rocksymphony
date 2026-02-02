@@ -15,7 +15,7 @@ import Pedidos from './Pedidos';
 import AdminPedidos from './AdminPedidos';
 import Configuracoes from './Configuracoes';
 import ImportarUsuarios from './ImportarUsuarios';
-import ListaUsuarios from './Usuarios';
+import UsuariosNovaTabela from './UsuariosNovaTabela';
 import Conta from './Conta';
 import MapaDoRock from './MapaDoRock';
 import Artistas from './Artistas';
@@ -24,6 +24,7 @@ import { CiShoppingCart } from "react-icons/ci";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import './App.css';
+import Camisas from './Camisas';
 
 function App() {
   return (
@@ -570,8 +571,9 @@ function AppContent() {
         <Route path="/admin/pedidos" element={isLoggedIn ? <AdminPedidos /> : <Navigate to="/login" />} />
         <Route path="/configuracoes" element={isLoggedIn ? <Configuracoes /> : <Navigate to="/login" />} />
         <Route path="/importar-usuarios" element={isLoggedIn ? <ImportarUsuarios /> : <Navigate to="/login" />} />
-        <Route path="/usuarios" element={isLoggedIn ? <ListaUsuarios /> : <Navigate to="/login" />} />
+        <Route path="/usuarios" element={isLoggedIn ? <UsuariosNovaTabela /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/camisas" element={isLoggedIn ? <Camisas /> : <Navigate to="/login" />} />
       </Routes>
       </main>
       

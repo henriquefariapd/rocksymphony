@@ -456,7 +456,7 @@ class ArtistUpdate(BaseModel):
 @app.post("/api/products")
 async def create_new_product(
     name: str = Form(...),
-    artist_id: int = Form(...),
+    artist_id: int = Form(0),
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
@@ -464,6 +464,7 @@ async def create_new_product(
     stamp: str = Form(""),
     release_year: int = Form(None),
     country: str = Form(""),
+    genre: str = Form(""),
     file: UploadFile = File(None),
     current_user: dict = Depends(get_current_user)  # Mudei para get_current_user temporariamente
 ):
@@ -480,16 +481,15 @@ async def create_new_product(
         image_path = None
         if file and file.filename:
             print(f"[DEBUG] Processando arquivo: {file.filename}")
-            
-            # Salvar imagem no Supabase Storage
+            print(f"[DEBUG] file.content_type: {getattr(file, 'content_type', None)}")
+            print(f"[DEBUG] file.spool_max_size: {getattr(file, 'spool_max_size', None)}")
             try:
                 # Ler o conteúdo do arquivo
                 file_content = await file.read()
+                print(f"[DEBUG] Tamanho do arquivo lido: {len(file_content) if file_content else 0}")
                 file_extension = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
                 file_name = f"{sanitize_filename(name)}_{int(datetime.now().timestamp())}.{file_extension}"
-                
-                print(f"[DEBUG] Fazendo upload da imagem: {file_name}")
-                
+                print(f"[DEBUG] Nome do arquivo para upload: {file_name}")
                 # Mapear extensões para MIME types corretos
                 mime_types = {
                     'jpg': 'image/jpeg',
@@ -498,39 +498,36 @@ async def create_new_product(
                     'gif': 'image/gif',
                     'webp': 'image/webp'
                 }
-                
                 content_type = mime_types.get(file_extension, 'image/jpeg')
                 print(f"[DEBUG] Content-Type: {content_type}")
-                
                 # Upload para o Supabase Storage
                 storage_response = supabase.storage.from_("product-images").upload(
                     file_name, 
                     file_content,
                     file_options={"content-type": content_type}
                 )
-                
                 print(f"[DEBUG] Upload response: {storage_response}")
-                
                 # Obter a URL pública da imagem
                 public_url = supabase.storage.from_("product-images").get_public_url(file_name)
+                print(f"[DEBUG] Public URL retornada: {public_url}")
                 image_path = public_url
                 print(f"[DEBUG] Imagem salva no Supabase Storage: {image_path}")
-                
             except Exception as storage_error:
                 print(f"[ERRO] Erro ao fazer upload para Supabase Storage: {str(storage_error)}")
                 import traceback
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=f"Erro ao fazer upload da imagem: {str(storage_error)}")
-        
         else:
             # Produto sem imagem
             image_path = None
             print(f"[DEBUG] Produto criado sem imagem")
         
         # Criar novo produto no Supabase
+        # Se for camisa (genre=clothe), artist_id deve ser None
+        artist_id_to_save = None if (genre and genre == 'clothe') else artist_id
         new_product = {
             "name": name,
-            "artist_id": artist_id,
+            "artist_id": artist_id_to_save,
             "description": description,
             "valor": float(valor),
             "remaining": remaining,
@@ -538,21 +535,29 @@ async def create_new_product(
             "reference_code": reference_code,
             "stamp": stamp,
             "release_year": release_year,
-            "country": country
+            "country": country,
+            "genre": genre
         }
         
         print(f"[DEBUG] Dados do produto: {new_product}")
         
-        response = supabase.table("products").insert(new_product).execute()
-        
-        print(f"[DEBUG] Resposta do Supabase: {response}")
-        
-        if response.data:
-            print(f"[DEBUG] Produto criado com sucesso: {response.data[0]}")
-            return {"message": f"Produto '{name}' criado com sucesso!", "product": response.data[0]}
-        else:
-            print(f"[DEBUG] Erro: response.data está vazio")
-            raise HTTPException(status_code=500, detail="Erro ao criar produto no banco")
+        try:
+            response = supabase.table("products").insert(new_product).execute()
+            print(f"[DEBUG] Resposta do Supabase: {response}")
+            if hasattr(response, 'data') and response.data:
+                print(f"[DEBUG] Produto criado com sucesso: {response.data[0]}")
+                return {"message": f"Produto '{name}' criado com sucesso!", "product": response.data[0]}
+            else:
+                print(f"[DEBUG] Erro: response.data está vazio ou não existe")
+                print(f"[DEBUG] response: {response}")
+                raise HTTPException(status_code=500, detail="Erro ao criar produto no banco")
+        except Exception as e:
+            print(f"[DEBUG] Exceção ao inserir produto no Supabase: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            if hasattr(e, 'message'):
+                print(f"[DEBUG] Detalhe do erro: {e.message}")
+            raise HTTPException(status_code=500, detail=f"Erro ao criar produto (Supabase): {str(e)}")
         
     except HTTPException:
         raise
@@ -576,7 +581,7 @@ class ProductUpdate(BaseModel):
 async def edit_product(
     product_id: int,
     name: str = Form(...),
-    artist_id: int = Form(...),
+    artist_id: int = Form(0),
     description: str = Form(...),
     valor: float = Form(...),
     remaining: int = Form(...),
@@ -584,6 +589,7 @@ async def edit_product(
     stamp: str = Form(""),
     release_year: int = Form(None),
     country: str = Form(""),
+    genre: str = Form(""),
     file: UploadFile = File(None),  # Imagem opcional
     current_user: dict = Depends(get_current_admin_user)
 ):
@@ -661,10 +667,11 @@ async def edit_product(
                 print(f"[DEBUG] Erro no upload: {e}")
                 raise HTTPException(status_code=500, detail=f"Erro no upload da imagem: {str(e)}")
         
-        # Atualizar produto no Supabase
+        # Se for camisa (genre=clothe), artist_id deve ser None
+        artist_id_to_save = None if (genre and genre == 'clothe') else artist_id
         update_data = {
             "name": name,
-            "artist_id": artist_id,
+            "artist_id": artist_id_to_save,
             "description": description,
             "valor": valor,
             "remaining": remaining,
@@ -672,7 +679,8 @@ async def edit_product(
             "reference_code": reference_code,
             "stamp": stamp,
             "release_year": release_year,
-            "country": country
+            "country": country,
+            "genre": genre
         }
         
         print(f"[DEBUG] Atualizando produto com dados: {update_data}")

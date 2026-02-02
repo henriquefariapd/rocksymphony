@@ -43,6 +43,9 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
               <Link to="/produtos" className="space-button">
                 <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
               </Link>
+              <Link to="/camisas" className="space-button">
+                <FaUser /> Camisas {/* Ícone de camisa */}
+              </Link>
               <Link to="/artistas" className="space-button">
                 <FaMusic /> Configurar Artistas {/* Ícone de música */}
               </Link>

@@ -34,30 +34,39 @@
 .reserv-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 20px 0;
-  background: white;
-  border-radius: 8px;
+  margin-top: 32px;
+  background-color: #fff;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .reserv-table th,
 .reserv-table td {
-  padding: 12px 15px;
+  padding: 16px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
 }
 
 .reserv-table th {
-  background-color: #8B1538;
-  color: white;
+  background: linear-gradient(135deg, #8B1538, #5a0e24);
+  color: #fff;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 14px;
 }
 
 .reserv-table tr:hover {
   background-color: #f5f5f5;
+  transition: background-color 0.2s;
 }
 
+/* Remove borda inferior da última linha */
+.reserv-table tr:last-child td {
+  border-bottom: none;
+}
 .m-bottom-20 {
   margin-bottom: 20px;
 }
