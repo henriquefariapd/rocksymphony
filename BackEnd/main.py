@@ -2009,42 +2009,39 @@ async def get_all_orders_admin(
     """Obter todos os pedidos (apenas admin)"""
     try:
         print(f"[DEBUG] Admin buscando todos os pedidos")
-        
         # Buscar todos os pedidos com endereços
         orders_response = supabase.table("orders").select("*, users(email), addresses(*)").order("order_date", desc=True).execute()
-        
         if not orders_response.data:
             return []
-        
         orders = orders_response.data
         print(f"[DEBUG] Total de pedidos encontrados: {len(orders)}")
-        
-        # Para cada pedido, buscar os produtos
         result = []
         for order in orders:
             order_products_response = supabase.table("order_products").select("*, products(*, artists(name))").eq("order_id", order["id"]).execute()
-            
             products = []
             if order_products_response.data:
                 for op in order_products_response.data:
-                    # Buscar nome do artista
                     artist_name = "Artista não informado"
                     if op["products"]["artists"]:
                         artist_name = op["products"]["artists"]["name"]
-                    
+                    # Detectar se é camisa pelo campo data
+                    data_field = op.get("data")
+                    is_camisa = False
+                    if isinstance(data_field, dict):
+                        is_camisa = any(v > 0 for v in data_field.values() if isinstance(v, (int, float)))
+                    genre = "clothe" if is_camisa else None
                     products.append({
                         "id": op["products"]["id"],
                         "name": op["products"]["name"],
                         "artist": artist_name,
                         "valor": op["products"]["valor"],
                         "quantity": op["quantity"],
-                        "image_path": op["products"]["image_path"]
+                        "image_path": op["products"]["image_path"],
+                        "data": data_field,
+                        "genre": genre
                     })
-            
-            # Calcular subtotal dos produtos
             subtotal = sum(float(p["valor"]) * p["quantity"] for p in products)
             shipping_cost = float(order.get("shipping_cost", 0))
-            
             result.append({
                 "id": order["id"],
                 "order_date": order["order_date"],
@@ -2057,12 +2054,10 @@ async def get_all_orders_admin(
                 "active": order["active"],
                 "payment_link": order["payment_link"],
                 "tracking_code": order.get("tracking_code"),
-                "delivery_address": order.get("addresses"),  # Endereço de entrega
+                "delivery_address": order.get("addresses"),
                 "products": products
             })
-        
         return result
-        
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
