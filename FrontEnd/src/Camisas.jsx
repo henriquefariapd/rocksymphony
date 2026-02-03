@@ -28,14 +28,14 @@ function Camisas() {
         toast.error("Usuário não autenticado. Por favor, faça login.");
         return;
       }
-      const response = await fetch(`${apiUrl}/api/products?genre=clothe`, {
+      const response = await fetch(`${apiUrl}/api/products/camisas`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!response.ok) {
         throw new Error("Erro ao buscar camisas");
       }
       const data = await response.json();
-      setCamisas(Array.isArray(data) ? data.filter(item => item.genre === 'clothe') : []);
+      setCamisas(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Erro ao carregar as camisas');
       console.error('Erro ao carregar camisas:', error);

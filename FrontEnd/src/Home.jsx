@@ -101,8 +101,10 @@ function Home() {
       
       // Verificar se data é um array
       if (Array.isArray(data)) {
-        setProdutos(data);
-        setFilteredProdutos(data); // Inicializar produtos filtrados
+        // Excluir produtos com genre=clothe (camisas)
+        const onlyProdutos = data.filter(item => item.genre !== 'clothe');
+        setProdutos(onlyProdutos);
+        setFilteredProdutos(onlyProdutos); // Inicializar produtos filtrados
       } else {
         console.error("[DEBUG] Produtos recebidos não são um array:", data);
         setProdutos([]);
@@ -175,7 +177,9 @@ function Home() {
         
         // Verificar se data é um array
         if (Array.isArray(data)) {
-          setFilteredProdutos(data);
+          // Excluir produtos com genre=clothe (camisas) dos resultados filtrados
+          const onlyProdutos = data.filter(item => item.genre !== 'clothe');
+          setFilteredProdutos(onlyProdutos);
         } else {
           console.error("[DEBUG] Resposta da busca não é um array:", data);
           setFilteredProdutos([]);

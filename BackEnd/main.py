@@ -1,3 +1,5 @@
+
+
 from datetime import date
 import json
 import csv
@@ -293,16 +295,18 @@ async def get_available_products(current_user: dict = Depends(get_current_user_o
         response = supabase.table("products").select(
             "*, artists(name, origin_country)"
         ).execute()
-        
+
         print(f"[DEBUG] Produtos encontrados no Supabase: {len(response.data) if response.data else 0}")
-        
+
         if response.data:
+            # Excluir produtos com genre=clothe (camisas)
+            filtered_data = [p for p in response.data if p.get('genre') != 'clothe']
             # Processar dados para incluir artist_name no nível do produto
             processed_products = []
-            for product in response.data:
+            for product in filtered_data:
                 # Criar cópia do produto
                 processed_product = dict(product)
-                
+
                 # Adicionar artist_name se existir relacionamento
                 if product.get('artists'):
                     processed_product['artist_name'] = product['artists']['name']
@@ -310,19 +314,20 @@ async def get_available_products(current_user: dict = Depends(get_current_user_o
                 else:
                     processed_product['artist_name'] = 'Artista não encontrado'
                     processed_product['artist_country'] = '-'
-                
+
                 # Remover o objeto artists aninhado para evitar confusão
                 if 'artists' in processed_product:
                     del processed_product['artists']
-                    
+
                 processed_products.append(processed_product)
-            
-            print(f"[DEBUG] Primeiro produto processado: {processed_products[0]}")
+
+            if processed_products:
+                print(f"[DEBUG] Primeiro produto processado: {processed_products[0]}")
             return processed_products
         else:
             print("[DEBUG] Nenhum produto encontrado no Supabase")
             return []  # Retornar lista vazia ao invés de erro para usuários não logados
-            
+
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar produtos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos: {str(e)}")
@@ -576,7 +581,32 @@ class ProductUpdate(BaseModel):
     stamp: str = ""
     release_year: int = Form(None)
     country: str = ""
-
+# Endpoint exclusivo para camisas
+@app.get("/api/products/camisas")
+async def get_camisas(current_user: dict = Depends(get_current_user_optional)):
+    """Retorna apenas produtos com genre=clothe (camisas)"""
+    user_id = current_user['id'] if current_user else "anônimo"
+    print(f"[DEBUG] Buscando camisas para usuário: {user_id}")
+    try:
+        response = supabase.table("products").select("*, artists(name, origin_country)").eq("genre", "clothe").execute()
+        print(f"[DEBUG] Camisas encontradas: {len(response.data) if response.data else 0}")
+        camisas = []
+        if response.data:
+            for product in response.data:
+                processed_product = dict(product)
+                if product.get('artists'):
+                    processed_product['artist_name'] = product['artists']['name']
+                    processed_product['artist_country'] = product['artists']['origin_country']
+                else:
+                    processed_product['artist_name'] = 'Artista não encontrado'
+                    processed_product['artist_country'] = '-'
+                if 'artists' in processed_product:
+                    del processed_product['artists']
+                camisas.append(processed_product)
+        return camisas
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar camisas: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar camisas: {str(e)}")
 @app.put("/api/products/{product_id}")
 async def edit_product(
     product_id: int,
@@ -1986,6 +2016,33 @@ async def get_all_orders_admin(
     except Exception as e:
         print(f"[DEBUG] Erro ao buscar todos os pedidos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar todos os pedidos: {str(e)}")
+
+# Endpoint exclusivo para camisas
+@app.get("/api/products/camisas")
+async def get_camisas(current_user: dict = Depends(get_current_user_optional)):
+    """Retorna apenas produtos com genre=clothe (camisas)"""
+    user_id = current_user['id'] if current_user else "anônimo"
+    print(f"[DEBUG] Buscando camisas para usuário: {user_id}")
+    try:
+        response = supabase.table("products").select("*, artists(name, origin_country)").eq("genre", "clothe").execute()
+        print(f"[DEBUG] Camisas encontradas: {len(response.data) if response.data else 0}")
+        camisas = []
+        if response.data:
+            for product in response.data:
+                processed_product = dict(product)
+                if product.get('artists'):
+                    processed_product['artist_name'] = product['artists']['name']
+                    processed_product['artist_country'] = product['artists']['origin_country']
+                else:
+                    processed_product['artist_name'] = 'Artista não encontrado'
+                    processed_product['artist_country'] = '-'
+                if 'artists' in processed_product:
+                    del processed_product['artists']
+                camisas.append(processed_product)
+        return camisas
+    except Exception as e:
+        print(f"[DEBUG] Erro ao buscar camisas: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar camisas: {str(e)}")
 
 @app.put("/api/orders/{order_id}/status")
 async def update_order_status(
