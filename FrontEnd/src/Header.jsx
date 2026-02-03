@@ -21,6 +21,9 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
           <Link to="/" className="space-button">
             <FaHome /> Home {/* Ícone de calendário */}
           </Link>
+          <Link to="/ver-camisas" className="space-button">
+            <FaUser /> Camisas {/* Ícone de camisa */}
+          </Link>
           
           <Link to="/mapa-do-rock" className="space-button">
             <FaMapMarkerAlt /> Mapa do Rock {/* Ícone de mapa */}
@@ -44,7 +47,7 @@ function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
                 <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
               </Link>
               <Link to="/camisas" className="space-button">
-                <FaUser /> Camisas {/* Ícone de camisa */}
+                <FaUser /> Configurar Camisas {/* Ícone de camisa */}
               </Link>
               <Link to="/artistas" className="space-button">
                 <FaMusic /> Configurar Artistas {/* Ícone de música */}

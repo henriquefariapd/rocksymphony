@@ -1298,6 +1298,7 @@ async def set_default_address(
 class AddProductToCartRequest(BaseModel):
     productId: int
     quantity: int = 1
+    size: str = None
 
 @app.post("/api/add_product_to_cart")
 def add_product_to_cart(
@@ -1334,26 +1335,65 @@ def add_product_to_cart(
         
         # Verificar se o produto já está no carrinho
         print('Verificando se produto já está no carrinho...')
-        existing_product = supabase.table("shoppingcart_products").select("*").eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
+        # Buscar produto para verificar se é camisa
+        product_info = supabase.table("products").select("genre").eq("id", newProduct.productId).execute()
+        is_camisa = product_info.data and product_info.data[0].get("genre") == "clothe"
+        import ipdb; ipdb.set_trace()
+        if is_camisa and newProduct.size:
+            # Para camisas, buscar pelo produto e carrinho (não por size)
+            existing_product = supabase.table("shoppingcart_products").select("*") \
+                .eq("shoppingcart_id", cart_id) \
+                .eq("product_id", newProduct.productId).execute()
+        else:
+            existing_product = supabase.table("shoppingcart_products").select("*") \
+                .eq("shoppingcart_id", cart_id) \
+                .eq("product_id", newProduct.productId).execute()
         print(f'Produto existente: {existing_product.data}')
-        
+
         if existing_product.data:
-            # Atualizar quantidade
-            print('Atualizando quantidade...')
-            new_quantity = existing_product.data[0]["quantity"] + newProduct.quantity
-            update_response = supabase.table("shoppingcart_products").update({
-                "quantity": new_quantity
-            }).eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId).execute()
-            print(f'Quantidade atualizada: {update_response.data}')
+            print('Atualizando produto no carrinho...')
+            cart_prod = existing_product.data[0]
+            update_query = {}
+            if is_camisa and newProduct.size:
+                # Atualizar campo data (jsonb) para camisa
+                data = cart_prod.get("data") or {"p":0,"m":0,"g":0,"gg":0}
+                # Se data for string, converter para dict
+                if isinstance(data, str):
+                    import json
+                    data = json.loads(data)
+                # Incrementar tamanho selecionado
+                size_key = newProduct.size.lower()
+                if size_key not in data:
+                    data[size_key] = 0
+                data[size_key] += newProduct.quantity
+                update_query["data"] = data
+                # Atualizar quantidade total
+                update_query["quantity"] = cart_prod["quantity"] + newProduct.quantity
+            else:
+                # Produto normal: só atualiza quantidade
+                update_query["quantity"] = cart_prod["quantity"] + newProduct.quantity
+            update = supabase.table("shoppingcart_products").update(update_query)
+            update = update.eq("shoppingcart_id", cart_id).eq("product_id", newProduct.productId)
+            update_response = update.execute()
+            print(f'Produto atualizado: {update_response.data}')
             result = update_response.data[0]
         else:
-            # Adicionar novo produto
-            print('Adicionando novo produto...')
+            print('Adicionando novo produto ao carrinho...')
             product_data = {
                 "shoppingcart_id": cart_id,
-                "product_id": newProduct.productId,
-                "quantity": newProduct.quantity
+                "product_id": newProduct.productId
             }
+            if is_camisa and newProduct.size:
+                # Inicializar campo data para camisa
+                data = {"p":0,"m":0,"g":0,"gg":0}
+                size_key = newProduct.size.lower()
+                if size_key not in data:
+                    data[size_key] = 0
+                data[size_key] += newProduct.quantity
+                product_data["data"] = data
+                product_data["quantity"] = newProduct.quantity
+            else:
+                product_data["quantity"] = newProduct.quantity
             add_response = supabase.table("shoppingcart_products").insert(product_data).execute()
             print(f'Produto adicionado: {add_response.data}')
             result = add_response.data[0]
@@ -1423,7 +1463,9 @@ def get_cart_products(current_user: dict = Depends(get_current_user)):
                 "artist": artist_name,
                 "valor": float(product["valor"]),
                 "quantity": item["quantity"],
-                "image_path": product.get("image_path")
+                "image_path": product.get("image_path"),
+                "genre": product.get("genre"),
+                "data": item.get("data")
             }
             formatted_products.append(formatted_product)
         

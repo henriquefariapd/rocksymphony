@@ -1,0 +1,1 @@
+ALTER TABLE shoppingcart_products ADD COLUMN size VARCHAR(10) NULL;

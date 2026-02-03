@@ -25,6 +25,7 @@ import { IoIosCloseCircleOutline } from "react-icons/io";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import './App.css';
 import Camisas from './Camisas';
+import VerCamisas from './VerCamisas';
 
 function App() {
   return (
@@ -153,6 +154,7 @@ function AppContent() {
           Authorization: `Bearer ${token}`,
         },
       });
+      debugger
       setCartItems(response.data); // Armazenar os produtos no estado
       
       // Se já houver um endereço selecionado, calcular frete automaticamente
@@ -507,7 +509,20 @@ function AppContent() {
                       <div className="cart-item-details">
                         <div className="cart-item-info">
                           <span className="item-name">{item.name}</span>
-                          <span className="item-artist">{item.artist}</span>
+                            {item.genre === 'clothe' ? (
+                              <span className="item-size">
+                                Tamanho(s): {
+                                  item.data
+                                    ? Object.entries(item.data)
+                                        .filter(([size, qty]) => qty > 0)
+                                        .map(([size, qty]) => `${size.toUpperCase()} (${qty})`)
+                                        .join(', ')
+                                    : 'Não informado'
+                                }
+                              </span>
+                            ) : (
+                              <span className="item-artist">{item.artist || item.artist_name || 'Artista não informado'}</span>
+                            )}
                         </div>
                         <div className="cart-item-controls">
                           <div className="quantity-info">
@@ -574,6 +589,7 @@ function AppContent() {
         <Route path="/usuarios" element={isLoggedIn ? <UsuariosNovaTabela /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/camisas" element={isLoggedIn ? <Camisas /> : <Navigate to="/login" />} />
+        <Route path="/ver-camisas" element={isLoggedIn ? <VerCamisas /> : <Navigate to="/login" />} />
       </Routes>
       </main>
       
