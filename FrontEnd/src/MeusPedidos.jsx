@@ -33,6 +33,7 @@ const MeusPedidos = () => {
       }
 
       const data = await response.json();
+      debugger
       console.log("Pedidos recebidos:", data);
       console.log("Tipo de data:", typeof data);
       console.log("É array?", Array.isArray(data));
@@ -239,7 +240,19 @@ const MeusPedidos = () => {
                         />
                         <div className="product-info">
                           <h5>{product.name}</h5>
-                          <p>Artista: {product.artist}</p>
+                          {product.genre !== 'clothe' && (
+                            <p>Artista: {product.artist}</p>
+                          )}
+                          {product.genre === 'clothe' && product.data && (
+                            <p>
+                              Tamanhos: {
+                                Object.entries(product.data)
+                                  .filter(([size, qty]) => qty > 0)
+                                  .map(([size, qty]) => `${size.toUpperCase()} (${qty})`)
+                                  .join(', ') || 'Não informado'
+                              }
+                            </p>
+                          )}
                           <p>Quantidade: {product.quantity}</p>
                           <p>Preço unitário: R$ {(parseFloat(product.valor) || 0).toFixed(2)}</p>
                           <p>Subtotal: R$ {((parseFloat(product.valor) || 0) * (parseInt(product.quantity) || 0)).toFixed(2)}</p>

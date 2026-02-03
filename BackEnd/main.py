@@ -1338,7 +1338,6 @@ def add_product_to_cart(
         # Buscar produto para verificar se é camisa
         product_info = supabase.table("products").select("genre").eq("id", newProduct.productId).execute()
         is_camisa = product_info.data and product_info.data[0].get("genre") == "clothe"
-        import ipdb; ipdb.set_trace()
         if is_camisa and newProduct.size:
             # Para camisas, buscar pelo produto e carrinho (não por size)
             existing_product = supabase.table("shoppingcart_products").select("*") \
@@ -1663,14 +1662,15 @@ def create_order(
         for cart_item in cart_products_response.data:
             product = cart_item["product"]
             quantity = cart_item["quantity"]
-            
             order_product_data = {
                 "order_id": new_order_id,
                 "product_id": product["id"],
                 "quantity": quantity,
                 "price_at_time": float(product["valor"])
             }
-            
+            # Copiar campo data se existir (camisas)
+            if "data" in cart_item and cart_item["data"] is not None:
+                order_product_data["data"] = cart_item["data"]
             supabase.table("order_products").insert(order_product_data).execute()
 
         # Criar link de pagamento no MercadoPago
@@ -1805,13 +1805,21 @@ async def get_user_orders(
                 print(f"  image_path: {product.get('image_path', 'N/A')}")
                 print(f"  artist: {artist_name}")
                 
+                # Detectar se é camisa pelo campo data
+                data_field = order_product.get("data")
+                is_camisa = False
+                if isinstance(data_field, dict):
+                    is_camisa = any(v > 0 for v in data_field.values() if isinstance(v, (int, float)))
+                genre = "clothe" if is_camisa else None
                 products.append({
-                    "id": product["id"],  # Adicionar ID do produto
+                    "id": product["id"],
                     "name": product["name"],
                     "artist": artist_name,
                     "quantity": quantity,
                     "valor": price_at_time,
-                    "image_path": product.get("image_path")  # Adicionar image_path
+                    "image_path": product.get("image_path"),
+                    "data": data_field,
+                    "genre": genre
                 })
                 total_value += price_at_time * quantity
             
