@@ -1,87 +1,72 @@
+
 import React from 'react';
-import { Link } from 'react-router-dom'; // Se estiver usando React Router 
-import { FaCalendarAlt, FaHotel, FaSignOutAlt, FaUser, FaFileImport, FaSignInAlt, FaUserCog, FaMapMarkerAlt, FaMusic } from 'react-icons/fa'; // Importando ícones do React Icons
-import { AiOutlineSchedule } from "react-icons/ai";
-import { GrConfigure } from "react-icons/gr";
-import { GiMusicalScore } from "react-icons/gi";
-import { FaHome } from "react-icons/fa";
-import './Header.css'; // Estilos do cabeçalho
+import { Link } from 'react-router-dom';
+import { FaHotel, FaSignOutAlt, FaUser, FaSignInAlt, FaUserCog, FaMapMarkerAlt, FaMusic, FaTshirt } from 'react-icons/fa';
+import { AiOutlineSchedule } from 'react-icons/ai';
+import { GiMusicalScore } from 'react-icons/gi';
+import { FaHome } from 'react-icons/fa';
+import './Header.css';
 
 function Header({ isLoggedIn, isAdmin, onLogout, onLogin }) {
   return (
     <header className="header">
-      <div className='d-flex'>
-      <GiMusicalScore className='align-self-center' />
-      <div className='m-left-10'>
-        <h2>Rock Symphony</h2>
+      <div className="header-left d-flex hide-mobile">
+        <GiMusicalScore className="align-self-center" />
+        <div className="m-left-10">
+          <h2>Rock Symphony</h2>
+        </div>
       </div>
-      </div>
-      {isLoggedIn ? (
-        <div className="header-buttons">
-          <Link to="/" className="space-button">
-            <FaHome /> Home {/* Ícone de calendário */}
-          </Link>
-          <Link to="/ver-camisas" className="space-button">
-            <FaUser /> Camisas {/* Ícone de camisa */}
-          </Link>
-          
-          <Link to="/mapa-do-rock" className="space-button">
-            <FaMapMarkerAlt /> Mapa do Rock {/* Ícone de mapa */}
-          </Link>
-
-          {!isAdmin && (
-            <>
-              <Link to="/minhas-reservas" className="space-button">
-                <AiOutlineSchedule /> Meus pedidos {/* Ícone de pedidos */}
-              </Link>
-              <Link to="/conta" className="space-button">
-                <FaUserCog /> Conta {/* Ícone de conta/perfil */}
-              </Link>
-            </>
-          )}
-          
-          {/* Mostrar botão de cadastro de espaços somente se for admin */}
-          {isAdmin && (
-            <>
-              <Link to="/produtos" className="space-button">
-                <FaHotel /> Configurar Produtos {/* Ícone de hotel */}
-              </Link>
-              <Link to="/camisas" className="space-button">
-                <FaUser /> Configurar Camisas {/* Ícone de camisa */}
-              </Link>
-              <Link to="/artistas" className="space-button">
-                <FaMusic /> Configurar Artistas {/* Ícone de música */}
-              </Link>
-              <Link to="/pedidos" className="space-button">
-                <AiOutlineSchedule /> Ver pedidos {/* Ícone de hotel */}
-              </Link>
-              <Link to="/usuarios" className="space-button">
-                <FaUser /> Usuários {/* Ícone de hotel */}
-              </Link>
-              {/* <Link to="/importar-usuarios" className="space-button">
-                <FaFileImport /> Importar Usuários 
-              </Link> */}
-              {/* <Link to="/configuracoes" className="space-button">
-                <GrConfigure /> Configurações 
-              </Link> */}
-            </>
-          )}
-
-          {/* Botão de logout */}
+      <nav className="header-buttons">
+        <Link to="/" className="space-button">
+          <FaHome /> <span className="button-text">Home</span>
+        </Link>
+        <Link to="/ver-camisas" className="space-button">
+          <FaTshirt className="icon-camisa" />
+          <span className="button-text">Camisas</span>
+        </Link>
+        <Link to="/mapa-do-rock" className="space-button">
+          <FaMapMarkerAlt /> <span className="button-text">Mapa do Rock</span>
+        </Link>
+        {isLoggedIn && !isAdmin && (
+          <>
+            <Link to="/minhas-reservas" className="space-button">
+              <AiOutlineSchedule /> <span className="button-text">Meus pedidos</span>
+            </Link>
+            <Link to="/conta" className="space-button">
+              <FaUserCog /> <span className="button-text">Conta</span>
+            </Link>
+          </>
+        )}
+        {isLoggedIn && isAdmin && (
+          <>
+            <Link to="/produtos" className="space-button">
+              <FaHotel /> <span className="button-text">Configurar Produtos</span>
+            </Link>
+            <Link to="/camisas" className="space-button">
+              <FaTshirt className="icon-camisa" />
+              <span className="button-text">Configurar Camisas</span>
+            </Link>
+            <Link to="/artistas" className="space-button">
+              <FaMusic /> <span className="button-text">Configurar Artistas</span>
+            </Link>
+            <Link to="/pedidos" className="space-button">
+              <AiOutlineSchedule /> <span className="button-text">Ver pedidos</span>
+            </Link>
+            <Link to="/usuarios" className="space-button">
+              <FaUser /> <span className="button-text">Usuários</span>
+            </Link>
+          </>
+        )}
+        {isLoggedIn ? (
           <button onClick={onLogout} className="logout-button">
-            <FaSignOutAlt /> Sair {/* Ícone de sair */}
+            <FaSignOutAlt /> <span className="button-text">Sair</span>
           </button>
-        </div>
-      ) : (
-        <div className="header-buttons">
-          <Link to="/" className="space-button">
-            <FaHome /> Home {/* Ícone de home */}
-          </Link>
+        ) : (
           <button onClick={onLogin} className="login-button">
-            <FaSignInAlt /> Login {/* Ícone de login */}
+            <FaSignInAlt /> <span className="button-text">Login</span>
           </button>
-        </div>
-      )}
+        )}
+      </nav>
     </header>
   );
 }

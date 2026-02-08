@@ -1,3 +1,64 @@
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+@media (max-width: 768px) {
+  .header {
+    flex-direction: row;
+    align-items: center;
+    height: 56px;
+    padding: 0;
+  }
+  .header h2 {
+    display: none !important;
+  }
+  .d-flex {
+    padding: 0 8px;
+  }
+  .header-buttons {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 0;
+  }
+  .space-button, .logout-button, .login-button {
+    min-width: 44px;
+    padding: 0 8px;
+    justify-content: center;
+    height: 100%;
+      display: flex; 
+      flex-direction: row; 
+      justify-content: space-between; 
+      align-items: center; 
+    flex: 0 0 auto;
+  }
+}
+/* Esconde o texto dos botões no mobile, mostra só ícone */
+@media (max-width: 768px) {
+  .space-button .button-text,
+  .logout-button .button-text,
+  .login-button .button-text {
+    display: none !important;
+  }
+  .header-buttons {
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .space-button, .logout-button, .login-button {
+    min-width: 44px;
+    padding: 0 8px;
+    justify-content: center;
+  }
+}
+
+/* Ajuste para ícone de camisa */
+.icon-camisa {
+  font-size: var(--font-size-base);
+}
 /* Header.css */
  .header {
   background: #8b2c3f; /* Cor vinho sólida */
@@ -13,6 +74,11 @@
   width: 100%;
   z-index: 100;
   height: 70px; /* Altura fixa para o header */
+    .header-left {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
 }
 
  .header h2 {
