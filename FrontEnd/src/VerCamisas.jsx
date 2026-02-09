@@ -3,12 +3,17 @@ import { toast } from 'react-toastify';
 import { FaCartPlus } from 'react-icons/fa';
 import { BiPurchaseTagAlt } from 'react-icons/bi';
 import './Produtos.css';
+import LoginModal from './LoginModal';
 
 function VerCamisas() {
   const [camisas, setCamisas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCamisa, setSelectedCamisa] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [productIdToAddAfterLogin, setProductIdToAddAfterLogin] = useState(null);
+  const [selectedSizes, setSelectedSizes] = useState({}); // { [camisaId]: 'P' | 'M' | 'G' | 'GG' }
+  const [sizeWarnings, setSizeWarnings] = useState({}); // { [camisaId]: true }
 
   const apiUrl = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
@@ -33,12 +38,6 @@ function VerCamisas() {
     };
     fetchCamisas();
   }, []);
-
-  // Comportamento igual ao Home.jsx
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [productIdToAddAfterLogin, setProductIdToAddAfterLogin] = useState(null);
-  const [selectedSizes, setSelectedSizes] = useState({}); // { [camisaId]: 'P' | 'M' | 'G' | 'GG' }
-  const [sizeWarnings, setSizeWarnings] = useState({}); // { [camisaId]: true }
 
   const handleAddToCart = async (camisaId) => {
     const size = selectedSizes[camisaId];
@@ -253,6 +252,15 @@ function VerCamisas() {
           </div>
         </div>
       )}
+      {/* Modal de Login */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          setProductIdToAddAfterLogin(null);
+        }}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }

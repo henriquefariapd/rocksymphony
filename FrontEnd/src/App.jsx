@@ -507,8 +507,16 @@ function AppContent() {
                   {cartItems.map((item) => (
                     <li key={item.id} className="cart-item">
                       <div className="cart-item-details">
-                        <div className="cart-item-info">
-                          <span className="item-name">{item.name}</span>
+                        <div className="cart-item-info" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {item.genre === 'clothe' && (
+                            <img
+                              src={item.image_path ? (item.image_path.startsWith('http') ? item.image_path : `${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : 'https://rock-symphony-91f7e39d835d.herokuapp.com'}/${item.image_path}`) : 'https://via.placeholder.com/40x40?text=Camisa'}
+                              alt={item.name}
+                              style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, marginRight: 8, background: '#fff', border: '1px solid #eee' }}
+                            />
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="item-name">{item.name}</span>
                             {item.genre === 'clothe' ? (
                               <span className="item-size">
                                 Tamanho(s): {
@@ -523,6 +531,7 @@ function AppContent() {
                             ) : (
                               <span className="item-artist">{item.artist || item.artist_name || 'Artista não informado'}</span>
                             )}
+                          </div>
                         </div>
                         <div className="cart-item-controls">
                           <div className="quantity-info">
@@ -589,7 +598,7 @@ function AppContent() {
         <Route path="/usuarios" element={isLoggedIn ? <UsuariosNovaTabela /> : <Navigate to="/login" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/camisas" element={isLoggedIn ? <Camisas /> : <Navigate to="/login" />} />
-        <Route path="/ver-camisas" element={isLoggedIn ? <VerCamisas /> : <Navigate to="/login" />} />
+        <Route path="/ver-camisas" element={<VerCamisas />} />
       </Routes>
       </main>
       
