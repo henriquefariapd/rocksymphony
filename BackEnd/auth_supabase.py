@@ -75,7 +75,10 @@ class AuthService:
                     detail="Erro ao criar usuário"
                 )
                 
+        except HTTPException:
+            raise
         except Exception as e:
+            print(f"[REGISTER ERROR] {type(e).__name__}: {e}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Erro ao registrar usuário: {str(e)}"

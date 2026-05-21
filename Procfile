@@ -1,1 +1,1 @@
-web: uvicorn BackEnd.main:app --host 0.0.0.0 --port ${PORT:-8000}
+web: newrelic-admin run-program uvicorn BackEnd.main:app --host 0.0.0.0 --port ${PORT:-8000}

@@ -193,6 +193,10 @@ class Address(Base):
 # Configuração do banco de dados
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
+# Usa psycopg v3 para PostgreSQL (compatível com Python 3.13)
+if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1).replace("postgres://", "postgresql+psycopg://", 1)
+
 # Criação do engine e da sessão
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
